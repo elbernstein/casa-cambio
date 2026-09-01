@@ -38,7 +38,8 @@ app.use('/api/settings', settingsRoutes);
 // Servir la aplicación Vue (Admin Panel) en producción
 app.use(express.static(path.join(__dirname, 'admin-panel/dist')));
 
-app.get('/*', (req, res) => {
+// Fallback para Vue Router
+app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, 'admin-panel/dist', 'index.html'));
 });
 
