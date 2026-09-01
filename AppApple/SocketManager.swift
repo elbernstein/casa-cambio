@@ -28,7 +28,7 @@ class SocketManagerObj: ObservableObject {
     }
     
     func setupSocket(token: String) {
-        let manager = SocketManager(socketURL: URL(string: "http://localhost:3000")!, config: [.log(true), .compress, .connectParams(["token": token])])
+        let manager = SocketManager(socketURL: URL(string: "https://api.cambioseurodolar.com")!, config: [.log(true), .compress, .connectParams(["token": token])])
         socket = manager.defaultSocket
         
         setupSocketEvents()
@@ -98,7 +98,7 @@ class SocketManagerObj: ObservableObject {
     }
     
     func login(username: String, pass: String) {
-        guard let url = URL(string: "http://localhost:3000/api/login") else { return }
+        guard let url = URL(string: "https://api.cambioseurodolar.com/api/login") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")

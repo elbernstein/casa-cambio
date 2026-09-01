@@ -13,13 +13,14 @@ namespace AppWindows
         public MainWindow()
         {
             InitializeComponent();
+            socket = IO.Socket("https://api.cambioseurodolar.com");
             InitializeSocket();
         }
 
         private void InitializeSocket()
         {
             // Conectar al servidor Node local (o la URL de producción)
-            socket = IO.Socket("http://localhost:3000");
+            socket = IO.Socket("https://api.cambioseurodolar.com");
 
             socket.On(Socket.EVENT_CONNECT, () =>
             {

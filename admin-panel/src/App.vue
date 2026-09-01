@@ -2,14 +2,26 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
+// URL Dinámica (local vs producción)
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://api.cambioseurodolar.com';
+
 const stores = ref([]);
 const loading = ref(true);
 const newStoreName = ref('');
 const createdCredentials = ref(null);
 
+// Variables del Módulo de Gestión (Salvapantallas)
+const managingStore = ref(null); // Tienda seleccionada para gestionar
+const storeSettings = ref({ idleTimeoutSeconds: 15 });
+const playlist = ref([]);
+const newAdFile = ref(null);
+const newAdDuration = ref(10);
+const uploadingAd = ref(false);
+
+// ---- LOGICA DE TIENDAS ----
 const fetchStores = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/stores');
+    const response = await axios.get(`${API_URL}/api/stores`);
     stores.value = response.data;
   } catch (error) {
     console.error("Error fetching Stores:", error);
@@ -22,7 +34,7 @@ const createStore = async () => {
   if (!newStoreName.value) return;
   
   try {
-    const response = await axios.post('http://localhost:3000/api/stores', { name: newStoreName.value });
+    const response = await axios.post(`${API_URL}/api/stores`, { name: newStoreName.value });
     if (response.data.success) {
       createdCredentials.value = {
         storeName: response.data.store.name,
@@ -39,6 +51,95 @@ const createStore = async () => {
 
 const closeCredentialsModal = () => {
   createdCredentials.value = null;
+};
+
+// ---- LOGICA DE SALVAPANTALLAS ----
+const openManageModal = async (store) => {
+  managingStore.value = store;
+  await fetchSettings();
+  await fetchPlaylist();
+};
+
+const closeManageModal = () => {
+  managingStore.value = null;
+  newAdFile.value = null;
+};
+
+const fetchSettings = async () => {
+  if (!managingStore.value) return;
+  try {
+    const res = await axios.get(`${API_URL}/api/settings/${managingStore.value._id}`);
+    if (res.data && res.data.settings) {
+      storeSettings.value.idleTimeoutSeconds = res.data.settings.idleTimeoutSeconds || 15;
+    }
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+  }
+};
+
+const saveSettings = async () => {
+  try {
+    await axios.put(`${API_URL}/api/settings/${managingStore.value._id}`, {
+      idleTimeoutSeconds: storeSettings.value.idleTimeoutSeconds
+    });
+    alert("Configuración de tiempo guardada correctamente.");
+  } catch (error) {
+    console.error("Error saving settings:", error);
+    alert("Error al guardar la configuración.");
+  }
+};
+
+const fetchPlaylist = async () => {
+  if (!managingStore.value) return;
+  try {
+    const res = await axios.get(`${API_URL}/api/ads/${managingStore.value._id}`);
+    if (res.data) {
+      playlist.value = res.data.playlist || [];
+    }
+  } catch (error) {
+    console.error("Error fetching playlist:", error);
+  }
+};
+
+const handleFileChange = (e) => {
+  newAdFile.value = e.target.files[0];
+};
+
+const uploadAd = async () => {
+  if (!newAdFile.value) {
+    alert("Selecciona un archivo (imagen o video) primero.");
+    return;
+  }
+  uploadingAd.value = true;
+  const formData = new FormData();
+  formData.append('adFile', newAdFile.value);
+  formData.append('durationSeconds', newAdDuration.value);
+
+  try {
+    await axios.post(`${API_URL}/api/ads/${managingStore.value._id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    // Limpiar formulario y recargar
+    newAdFile.value = null;
+    document.getElementById('fileUploadInput').value = ""; // Limpiar input file
+    await fetchPlaylist();
+  } catch (error) {
+    console.error("Error uploading ad:", error);
+    alert("Error al subir la publicidad. Verifica el tamaño y formato.");
+  } finally {
+    uploadingAd.value = false;
+  }
+};
+
+const deleteAd = async (adId) => {
+  if (!confirm("¿Seguro que deseas eliminar esta publicidad?")) return;
+  try {
+    await axios.delete(`${API_URL}/api/ads/${managingStore.value._id}/${adId}`);
+    await fetchPlaylist();
+  } catch (error) {
+    console.error("Error deleting ad:", error);
+    alert("Error al eliminar publicidad.");
+  }
 };
 
 onMounted(() => {
@@ -80,10 +181,67 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Modal de Gestión (Configuración y Salvapantallas) -->
+    <div v-if="managingStore" class="modal-overlay manage-overlay">
+      <div class="glass-card modal-content manage-modal">
+        <div class="modal-header">
+          <h3>Gestión: {{ managingStore.name }}</h3>
+          <button @click="closeManageModal" class="btn-x">×</button>
+        </div>
+        
+        <div class="manage-grid">
+          <!-- Columna 1: Ajustes -->
+          <div class="manage-section">
+            <h4>⚙️ Configuración (Reposo)</h4>
+            <div class="form-group">
+              <label>Tiempo de inactividad para activar salvapantallas (Segundos):</label>
+              <div class="flex-row">
+                <input type="number" v-model="storeSettings.idleTimeoutSeconds" min="5" max="300" />
+                <button @click="saveSettings" class="btn-save">Guardar</button>
+              </div>
+            </div>
+            
+            <hr class="divider">
+            
+            <h4>📤 Subir Publicidad</h4>
+            <div class="form-group upload-box">
+              <input type="file" id="fileUploadInput" accept="image/*,video/mp4" @change="handleFileChange" />
+              <label>Duración (segundos):</label>
+              <input type="number" v-model="newAdDuration" min="1" max="60" />
+              <button @click="uploadAd" class="btn-upload" :disabled="uploadingAd">
+                {{ uploadingAd ? 'Subiendo...' : 'Subir Anuncio' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Columna 2: Playlist -->
+          <div class="manage-section">
+            <h4>📺 Lista de Reproducción (En vivo)</h4>
+            <div class="playlist-container">
+              <div v-if="playlist.length === 0" class="empty-state">
+                No hay publicidad asignada a esta tienda.
+              </div>
+              <div v-for="(ad, index) in playlist" :key="ad._id" class="playlist-item">
+                <div class="ad-preview">
+                  <span class="ad-number">{{ index + 1 }}</span>
+                  <div v-if="ad.type === 'video'" class="video-badge">🎬 Video</div>
+                  <img v-else :src="API_URL + ad.url" alt="ad preview" />
+                </div>
+                <div class="ad-info">
+                  <p class="ad-dur">⏱ {{ ad.durationSeconds }}s</p>
+                </div>
+                <button @click="deleteAd(ad._id)" class="btn-delete-ad">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <main class="content">
       <h2 class="section-title">Tiendas Activas</h2>
       <div class="card-container" v-if="!loading && stores.length > 0">
-        <div class="glass-card pdv-card" v-for="store in stores" :key="store.id">
+        <div class="glass-card pdv-card" v-for="store in stores" :key="store._id">
           <div class="card-header">
             <h3>{{ store.name }}</h3>
             <span class="status-indicator active">En Línea</span>
@@ -97,13 +255,7 @@ onMounted(() => {
               <span class="label">Monto Recibe (USD):</span>
               <span class="value monto">${{ store.montoRecibe }}</span>
             </div>
-            <div class="stat">
-              <span class="label">Publicidad:</span>
-              <span class="value" v-if="store.adUrl">
-                <a :href="store.adUrl" target="_blank">Ver Archivo</a> ({{ store.adType }})
-              </span>
-              <span class="value empty" v-else>No asignada</span>
-            </div>
+            <button @click="openManageModal(store)" class="btn-manage">⚙️ Gestionar Publicidad</button>
           </div>
         </div>
       </div>
@@ -127,6 +279,7 @@ onMounted(() => {
   --card-bg: rgba(30, 41, 59, 0.7);
   --accent: #3b82f6;
   --success: #10b981;
+  --danger: #ef4444;
 }
 
 body {
@@ -181,26 +334,55 @@ body {
 .stat .label { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem; }
 .stat .value { font-size: 1.1rem; font-weight: 500; }
 .stat .value.monto { font-size: 1.5rem; color: var(--accent); font-weight: 700; }
-.stat .value a { color: #60a5fa; text-decoration: none; }
-.stat .value.empty { color: #64748b; font-style: italic; }
 
-/* Modal */
+.btn-manage {
+  width: 100%; margin-top: 1rem; padding: 0.75rem; border-radius: 8px; border: none;
+  background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-weight: bold;
+}
+.btn-manage:hover { background: rgba(255,255,255,0.2); }
+
+/* Modales */
 .modal-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
   display: flex; align-items: center; justify-content: center; z-index: 100;
 }
 .modal-content { max-width: 500px; width: 90%; text-align: center; }
-.credentials-box {
-  background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1.5rem;
-  margin: 1.5rem 0; text-align: left;
-}
+.manage-modal { max-width: 900px; text-align: left; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.modal-header h3 { margin: 0; font-size: 1.5rem; color: white; }
+.btn-x { background: transparent; border: none; color: white; font-size: 2rem; cursor: pointer; }
+
+.manage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+@media (max-width: 768px) { .manage-grid { grid-template-columns: 1fr; } }
+.manage-section { background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; }
+.manage-section h4 { margin-top: 0; color: #a78bfa; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.form-group label { font-size: 0.9rem; color: var(--text-secondary); }
+.flex-row { display: flex; gap: 1rem; }
+.flex-row input { flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: white; }
+.btn-save { background: var(--success); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
+.divider { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1.5rem 0; }
+
+.upload-box { background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.3); }
+.upload-box input[type="file"] { margin-bottom: 0.5rem; width: 100%; color: white; }
+.btn-upload { background: var(--accent); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; margin-top: 0.5rem; font-weight: bold; }
+
+.playlist-container { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem; }
+.playlist-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px; }
+.ad-preview { display: flex; align-items: center; gap: 0.5rem; }
+.ad-number { background: var(--accent); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; }
+.ad-preview img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+.video-badge { background: #475569; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+.ad-info { flex: 1; margin-left: 1rem; }
+.ad-dur { margin: 0; font-size: 0.9rem; color: var(--text-secondary); }
+.btn-delete-ad { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; }
+.btn-delete-ad:hover { background: var(--danger); color: white; }
+
+.credentials-box { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0; text-align: left; }
 .credentials-box p { margin: 0.5rem 0; }
 .credentials-box hr { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0; }
 .highlight { font-family: monospace; background: rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 4px; }
 .highlight.pass { color: #facc15; font-weight: bold; font-size: 1.2rem; }
-.btn-close {
-  background: var(--success); color: white; border: none; padding: 0.75rem 1.5rem;
-  border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;
-}
+.btn-close { background: var(--success); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
 </style>
