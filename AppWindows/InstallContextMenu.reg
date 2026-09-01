@@ -1,0 +1,17 @@
+Windows Registry Editor Version 5.00
+
+; Añadir opción al click derecho global para archivos (para enviar imágenes de publicidad por ejemplo)
+[HKEY_CLASSES_ROOT\*\shell\EnviarCasaCambio]
+@="Enviar a Pantalla (Casa Cambio)"
+"Icon"="\"C:\\Ruta\\A\\Tu\\AppWindows.exe\""
+
+[HKEY_CLASSES_ROOT\*\shell\EnviarCasaCambio\command]
+@="\"C:\\Ruta\\A\\Tu\\AppWindows.exe\" \"%1\""
+
+; Añadir opción al click derecho en el fondo del escritorio o carpetas
+[HKEY_CLASSES_ROOT\Directory\Background\shell\EnviarCasaCambio]
+@="Enviar a Pantalla (Casa Cambio)"
+"Icon"="\"C:\\Ruta\\A\\Tu\\AppWindows.exe\""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\EnviarCasaCambio\command]
+@="\"C:\\Ruta\\A\\Tu\\AppWindows.exe\" \"abrir\""
