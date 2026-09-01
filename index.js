@@ -35,5 +35,12 @@ app.use('/api/login', authRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// Servir la aplicación Vue (Admin Panel) en producción
+app.use(express.static(path.join(__dirname, 'admin-panel/dist')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-panel/dist', 'index.html'));
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 Servidor MVC corriendo en http://localhost:${PORT}`));
