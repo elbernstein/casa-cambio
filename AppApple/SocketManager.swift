@@ -4,6 +4,8 @@ import Combine
 import SwiftUI
 
 class SocketManagerObj: ObservableObject {
+    static let shared = SocketManagerObj()
+    
     @Published var montoEntrega: String = "0.00"
     @Published var montoRecibe: String = "0.00"
     @Published var isAuthenticated: Bool = false
@@ -13,14 +15,14 @@ class SocketManagerObj: ObservableObject {
     @Published var currentAdIndex: Int = 0
     @Published var idleTimeout: Double = 15.0
     
-    private var manager: SocketManager!
-    private var socket: SocketIOClient!
+    private var manager: SocketManager?
+    private var socket: SocketIOClient?
     private let pdvID = "pdv-1"
     
     // Timer para el idle
     private var idleTimer: Timer?
     
-    init() {
+    private init() {
         if let savedToken = UserDefaults.standard.string(forKey: "jwtToken") {
             self.isAuthenticated = true
             setupSocket(token: savedToken)
@@ -29,19 +31,19 @@ class SocketManagerObj: ObservableObject {
     
     func setupSocket(token: String) {
         self.manager = SocketManager(socketURL: URL(string: "https://api.cambioseurodolar.com")!, config: [.log(true), .compress, .connectParams(["token": token])])
-        self.socket = self.manager.defaultSocket
+        self.socket = self.manager?.defaultSocket
         
         setupSocketEvents()
-        self.socket.connect()
+        self.socket?.connect()
     }
     
     private func setupSocketEvents() {
-        socket.on(clientEvent: .connect) { [weak self] data, ack in
+        socket?.on(clientEvent: .connect) { [weak self] data, ack in
             print("🟢 Conectado al servidor Socket.IO")
-            self?.socket.emit("join_room", self?.pdvID ?? "")
+            self?.socket?.emit("join_room", self?.pdvID ?? "")
         }
         
-        socket.on("estado_inicial") { [weak self] dataArray, ack in
+        socket?.on("estado_inicial") { [weak self] dataArray, ack in
             if let data = dataArray.first as? [String: Any] {
                 DispatchQueue.main.async {
                     if let me = data["montoEntrega"] as? String { self?.montoEntrega = me }
@@ -60,7 +62,7 @@ class SocketManagerObj: ObservableObject {
             }
         }
         
-        socket.on("playlist_updated") { [weak self] data, ack in
+        socket?.on("playlist_updated") { [weak self] data, ack in
             if let newPlaylist = data.first as? [[String: Any]] {
                 DispatchQueue.main.async {
                     self?.playlist = newPlaylist
@@ -69,7 +71,7 @@ class SocketManagerObj: ObservableObject {
             }
         }
         
-        socket.on("settings_updated") { [weak self] data, ack in
+        socket?.on("settings_updated") { [weak self] data, ack in
             if let settings = data.first as? [String: Any],
                let timeout = settings["idleTimeoutSeconds"] as? Double {
                 DispatchQueue.main.async {
@@ -79,7 +81,7 @@ class SocketManagerObj: ObservableObject {
             }
         }
         
-        socket.on("nuevo_monto") { [weak self] dataArray, ack in
+        socket?.on("nuevo_monto") { [weak self] dataArray, ack in
             if let data = dataArray.first as? [String: Any] {
                 DispatchQueue.main.async {
                     if let newMontoEntrega = data["montoEntrega"] as? String { self?.montoEntrega = newMontoEntrega }
