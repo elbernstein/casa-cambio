@@ -26,15 +26,33 @@ const editNewPassword = ref('');
 const savingCredentials = ref(false);
 
 const emittingAmounts = ref({});
+const activeInputs = ref({}); // Track if user is currently typing for a store
+let emitDebounceTimer = null;
 
 // ---- LOGICA DE TIENDAS ----
 const fetchStores = async () => {
   try {
-    const response = await axios.get(`${API_URL}/api/stores`);
-    stores.value = response.data;
+    const res = await axios.get(`${API_URL}/api/stores`);
+    if (stores.value.length === 0) {
+      stores.value = res.data;
+    } else {
+      res.data.forEach(serverStore => {
+        const localStore = stores.value.find(s => s._id === serverStore._id);
+        if (localStore) {
+          localStore.name = serverStore.name;
+          // Solo sobrescribir los números si el usuario NO está escribiendo actualmente
+          if (!activeInputs.value[localStore._id]) {
+            localStore.montoEntrega = serverStore.montoEntrega;
+            localStore.montoRecibe = serverStore.montoRecibe;
+          }
+        } else {
+          stores.value.push(serverStore);
+        }
+      });
+    }
+    loading.value = false;
   } catch (error) {
-    console.error("Error fetching Stores:", error);
-  } finally {
+    console.error("Error fetching stores:", error);
     loading.value = false;
   }
 };
@@ -215,13 +233,22 @@ const emitAmounts = async (store) => {
       montoEntrega: store.montoEntrega,
       montoRecibe: store.montoRecibe
     });
-    // No hace falta hacer fetch, se actualiza localmente y emite
   } catch (error) {
     console.error("Error emitting amounts:", error);
-    alert("Error al emitir los montos.");
   } finally {
     emittingAmounts.value[store._id] = false;
   }
+};
+
+const handleAmountInput = (store) => {
+  activeInputs.value[store._id] = true;
+  clearTimeout(emitDebounceTimer);
+  
+  emitDebounceTimer = setTimeout(() => {
+    emitAmounts(store);
+    // Desbloquear para permitir actualizaciones del servidor después de 2 segundos de inactividad
+    setTimeout(() => { activeInputs.value[store._id] = false; }, 2000);
+  }, 400); // 400ms delay tras teclear
 };
 
 onMounted(() => {
@@ -364,19 +391,19 @@ onMounted(() => {
               <span class="label">Monto Entrega (COP):</span>
               <div class="amount-input-group">
                 <span class="currency-symbol">$</span>
-                <input type="text" v-model="store.montoEntrega" class="amount-input" />
+                <input type="text" v-model="store.montoEntrega" @input="handleAmountInput(store)" class="amount-input" />
               </div>
             </div>
             <div class="stat">
               <span class="label">Monto Recibe (USD):</span>
               <div class="amount-input-group">
                 <span class="currency-symbol">$</span>
-                <input type="text" v-model="store.montoRecibe" class="amount-input" />
+                <input type="text" v-model="store.montoRecibe" @input="handleAmountInput(store)" class="amount-input" />
               </div>
             </div>
-            <button @click="emitAmounts(store)" class="btn-emit" :disabled="emittingAmounts[store._id]">
-              {{ emittingAmounts[store._id] ? 'Emitiendo...' : '📡 Emitir al iPad' }}
-            </button>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin-bottom: 0.5rem; min-height: 18px;">
+              <span v-if="emittingAmounts[store._id]" style="color: var(--success);">Enviando...</span>
+            </div>
             <hr class="card-divider">
             <button @click="openManageModal(store)" class="btn-manage">⚙️ Gestionar Publicidad</button>
             <button @click="openUsersModal(store)" class="btn-users">👥 Usuarios y Credenciales</button>
