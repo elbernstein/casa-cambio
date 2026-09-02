@@ -137,7 +137,7 @@ struct ContentView: View {
                                 .padding(.leading, 10)
                             
                             // Tarjeta Blanca con Sombra
-                            HStack(alignment: .center, spacing: 60) {
+                            HStack(alignment: .center, spacing: 20) {
                                 
                                 // Lado Izquierdo: Usted entrega
                                 VStack(alignment: .leading, spacing: 10) {
@@ -171,16 +171,17 @@ struct ContentView: View {
                                     }
                                     Text(formatAmount(socketObj.montoEntrega))
                                         .font(.system(size: 140, weight: .bold))
-                                        .minimumScaleFactor(0.4)
+                                        .minimumScaleFactor(0.3)
                                         .lineLimit(1)
                                         .foregroundColor(textTeal)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 // Flecha central
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 100, weight: .light))
+                                    .font(.system(size: 80, weight: .light))
                                     .foregroundColor(textTeal)
-                                    .padding(.horizontal, 40)
+                                    .padding(.horizontal, 20)
                                 
                                 // Lado Derecho: Usted recibe
                                 VStack(alignment: .leading, spacing: 10) {
@@ -214,20 +215,21 @@ struct ContentView: View {
                                     }
                                     Text(formatAmount(socketObj.montoRecibe))
                                         .font(.system(size: 140, weight: .bold))
-                                        .minimumScaleFactor(0.4)
+                                        .minimumScaleFactor(0.3)
                                         .lineLimit(1)
                                         .foregroundColor(textDark)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 
                             }
-                            .padding(.vertical, 80)
-                            .padding(.horizontal, 100)
+                            .padding(.vertical, 60)
+                            .padding(.horizontal, 40)
                             .background(Color.white)
                             .cornerRadius(40)
                             .shadow(color: Color.black.opacity(0.08), radius: 30, x: 0, y: 15)
                             
                         }
-                        .padding(.horizontal, 60)
+                        .padding(.horizontal, 20)
                         
                         // PANTALLA DE PUBLICIDAD (INACTIVIDAD) - Solo cubre la zona inferior
                         if socketObj.isIdle && !socketObj.playlist.isEmpty {
