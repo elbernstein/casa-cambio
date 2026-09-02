@@ -18,9 +18,13 @@ exports.updateSettings = async (req, res) => {
         const { storeId } = req.params;
         const { idleTimeoutSeconds, maxAdsLimit } = req.body;
         
+        const updateData = {};
+        if (idleTimeoutSeconds !== undefined) updateData.idleTimeoutSeconds = idleTimeoutSeconds;
+        if (maxAdsLimit !== undefined) updateData.maxAdsLimit = maxAdsLimit;
+
         const settings = await StoreSettings.findOneAndUpdate(
             { storeId }, 
-            { idleTimeoutSeconds, maxAdsLimit }, 
+            updateData, 
             { new: true, upsert: true }
         );
         

@@ -3,6 +3,6 @@ const router = express.Router();
 const settingsController = require('../controllers/settingsController');
 
 router.get('/:storeId', settingsController.getSettings);
-router.post('/:storeId', settingsController.updateSettings);
+router.put('/:storeId', settingsController.updateSettings);
 
 module.exports = router;
