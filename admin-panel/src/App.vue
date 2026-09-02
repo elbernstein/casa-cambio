@@ -211,6 +211,15 @@ const uploadAd = async () => {
     alert("Selecciona un archivo (imagen o video) primero.");
     return;
   }
+  
+  // Validar tamaño de archivo (50MB para video, 5MB para imágenes)
+  const isVideo = newAdFile.value.type.startsWith('video');
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+  if (newAdFile.value.size > maxSize) {
+    alert(`El archivo es demasiado grande. Máximo permitido: ${isVideo ? '50MB' : '5MB'}`);
+    return;
+  }
+
   uploadingAd.value = true;
   const formData = new FormData();
   formData.append('adFile', newAdFile.value);
@@ -411,7 +420,11 @@ onMounted(() => {
             
             <h4>📤 Subir Publicidad</h4>
             <div class="form-group upload-box">
-              <input type="file" id="fileUploadInput" accept="image/*,video/mp4" @change="handleFileChange" />
+              <div class="upload-instructions">
+                <p><strong>Imágenes:</strong> Formato horizontal (ej. 1024x768 o 2048x1536). Max 5 MB.</p>
+                <p><strong>Videos:</strong> Formato MP4 horizontal (720p o 1080p). Max 50 MB.</p>
+              </div>
+              <input type="file" id="fileUploadInput" accept="image/jpeg,image/png,image/webp,video/mp4" @change="handleFileChange" />
               <label>Duración (segundos):</label>
               <input type="number" v-model="newAdDuration" min="1" max="60" />
               <button @click="uploadAd" class="btn-upload" :disabled="uploadingAd">
@@ -666,6 +679,8 @@ body {
 
 .upload-box { background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.3); }
 .upload-box input[type="file"] { margin-bottom: 0.5rem; width: 100%; color: white; }
+.upload-instructions { font-size: 0.85rem; color: #cbd5e1; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+.upload-instructions p { margin: 0.25rem 0; }
 .btn-upload { background: var(--accent); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; margin-top: 0.5rem; font-weight: bold; }
 
 .playlist-container { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem; }
