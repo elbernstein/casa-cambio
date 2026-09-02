@@ -2,7 +2,7 @@ import SwiftUI
 import AVKit
 
 struct ContentView: View {
-    @StateObject private var socketObj = SocketManagerObj()
+    @StateObject private var socketObj = SocketManagerObj.shared
     
     // Estados para Login
     @State private var username = ""
