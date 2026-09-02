@@ -130,78 +130,62 @@ struct ContentView: View {
                     Spacer()
                     
                     // Contenido Central
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 40) {
                         Text("OPERACIÓN ACTUAL")
-                            .font(.system(size: 20, weight: .medium))
+                            .font(.system(size: 40, weight: .medium))
                             .foregroundColor(textGray)
                             .padding(.leading, 10)
                         
                         // Tarjeta Blanca con Sombra
-                        HStack(alignment: .center, spacing: 40) {
+                        HStack(alignment: .center, spacing: 60) {
                             
                             // Lado Izquierdo: Usted entrega
-                            VStack(alignment: .leading, spacing: 5) {
+                            VStack(alignment: .leading, spacing: 10) {
                                 Text("Usted entrega")
-                                    .font(.subheadline)
+                                    .font(.system(size: 30))
                                     .foregroundColor(textGray)
                                 HStack {
                                     Text("🇨🇴")
+                                        .font(.system(size: 30))
                                     Text("COP")
-                                        .fontWeight(.bold)
+                                        .font(.system(size: 30, weight: .bold))
                                         .foregroundColor(topBarBlue)
                                 }
                                 Text(socketObj.montoEntrega)
-                                    .font(.system(size: 70, weight: .bold))
+                                    .font(.system(size: 140, weight: .bold))
                                     .foregroundColor(textTeal)
                             }
                             
                             // Flecha central
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 50, weight: .light))
+                                .font(.system(size: 100, weight: .light))
                                 .foregroundColor(textTeal)
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 40)
                             
                             // Lado Derecho: Usted recibe
-                            VStack(alignment: .leading, spacing: 5) {
+                            VStack(alignment: .leading, spacing: 10) {
                                 Text("Usted recibe")
-                                    .font(.subheadline)
+                                    .font(.system(size: 30))
                                     .foregroundColor(textGray)
                                 HStack {
                                     Text("🇺🇸")
+                                        .font(.system(size: 30))
                                     Text("USD")
-                                        .fontWeight(.bold)
+                                        .font(.system(size: 30, weight: .bold))
                                         .foregroundColor(topBarBlue)
                                 }
                                 Text(socketObj.montoRecibe)
-                                    .font(.system(size: 70, weight: .bold))
+                                    .font(.system(size: 140, weight: .bold))
                                     .foregroundColor(textDark)
                             }
                             
                         }
-                        .padding(.vertical, 40)
-                        .padding(.horizontal, 50)
+                        .padding(.vertical, 80)
+                        .padding(.horizontal, 100)
                         .background(Color.white)
-                        .cornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
+                        .cornerRadius(40)
+                        .shadow(color: Color.black.opacity(0.08), radius: 30, x: 0, y: 15)
                         
-                        // Botón Continuar Falso
-                        HStack {
-                            Spacer()
-                            Button(action: {}) {
-                                HStack {
-                                    Text("CONTINUAR")
-                                        .fontWeight(.bold)
-                                    Image(systemName: "chevron.right")
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 30)
-                                .padding(.vertical, 15)
-                                .background(Color(red: 0.35, green: 0.65, blue: 0.90))
-                                .cornerRadius(30)
-                            }
-                            Spacer()
-                        }
-                        .padding(.top, 20)
                     }
                     .padding(.horizontal, 60)
                     
