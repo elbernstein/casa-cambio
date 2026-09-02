@@ -187,25 +187,55 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 8px;
             background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            padding: 6px 10px;
+            border-radius: 14px;
+            padding: 8px 10px;
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .currency-item {
+        .currency-select-wrapper {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-weight: 600;
-            font-size: 13px;
+            gap: 7px;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 10px;
+            padding: 6px 8px;
+            flex: 1;
+            min-width: 0;
+            transition: border-color 0.2s;
         }
 
-        .currency-item img {
+        .currency-select-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+
+        .currency-select-wrapper img {
             width: 22px;
             height: 15px;
-            border-radius: 2px;
+            border-radius: 3px;
             object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .currency-select-wrapper select {
+            background: transparent;
+            border: none;
+            color: #f8fafc;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .currency-select-wrapper select option {
+            background: #1e293b;
+            color: white;
+            font-weight: 500;
+            font-size: 13px;
         }
 
         .swap-btn {
@@ -213,12 +243,13 @@
             border: none;
             color: white;
             border-radius: 50%;
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            flex-shrink: 0;
             transition: background 0.2s, transform 0.2s;
         }
 
@@ -230,7 +261,7 @@
         .amount-box {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
 
         .amount-label {
@@ -484,14 +515,16 @@
             
             <!-- Monedas y Swap -->
             <div class="currency-row">
-                <div class="currency-item" id="curEntregaInfo">
+                <div class="currency-select-wrapper">
                     <img id="flagEntrega" src="https://flagcdn.com/w160/ca.webp" alt="Flag">
-                    <span id="codeEntrega">CAD</span>
+                    <select id="selectEntrega" onchange="onCurrencySelectChange('entrega')">
+                    </select>
                 </div>
                 <button class="swap-btn" title="Invertir divisas" onclick="swapCurrencies()">⇄</button>
-                <div class="currency-item" id="curRecibeInfo">
+                <div class="currency-select-wrapper">
                     <img id="flagRecibe" src="https://flagcdn.com/w160/co.webp" alt="Flag">
-                    <span id="codeRecibe">COP</span>
+                    <select id="selectRecibe" onchange="onCurrencySelectChange('recibe')">
+                    </select>
                 </div>
             </div>
 
@@ -560,6 +593,42 @@
         const API_URL = "https://api.cambioseurodolar.com";
         const storeId = "6a975d0648d3ed28b3dbd255";
 
+        const CURRENCIES = [
+            { code: 'USD', name: 'Dólar Americano (USD)', flagUrl: 'https://flagcdn.com/w160/us.webp' },
+            { code: 'EUR', name: 'Euro (EUR)', flagUrl: 'https://flagcdn.com/w160/eu.webp' },
+            { code: 'COP', name: 'Peso Colombiano (COP)', flagUrl: 'https://flagcdn.com/w160/co.webp' },
+            { code: 'CAD', name: 'Dólar Canadiense (CAD)', flagUrl: 'https://flagcdn.com/w160/ca.webp' },
+            { code: 'MXN', name: 'Peso Mexicano (MXN)', flagUrl: 'https://flagcdn.com/w160/mx.webp' },
+            { code: 'GBP', name: 'Libra Esterlina (GBP)', flagUrl: 'https://flagcdn.com/w160/gb.webp' },
+            { code: 'BSD', name: 'Dólar Bahamas (BSD)', flagUrl: 'https://flagcdn.com/w160/bs.webp' },
+            { code: 'NZD', name: 'Dólar Nueva Zelanda (NZD)', flagUrl: 'https://flagcdn.com/w160/nz.webp' },
+            { code: 'CLP', name: 'Peso Chileno (CLP)', flagUrl: 'https://flagcdn.com/w160/cl.webp' },
+            { code: 'JPY', name: 'Yen Japonés (JPY)', flagUrl: 'https://flagcdn.com/w160/jp.webp' },
+            { code: 'PEN', name: 'Nuevo Sol Perú (PEN)', flagUrl: 'https://flagcdn.com/w160/pe.webp' },
+            { code: 'AUD', name: 'Dólar Australiano (AUD)', flagUrl: 'https://flagcdn.com/w160/au.webp' },
+            { code: 'BRL', name: 'Real Brasileño (BRL)', flagUrl: 'https://flagcdn.com/w160/br.webp' },
+            { code: 'CHF', name: 'Franco Suizo (CHF)', flagUrl: 'https://flagcdn.com/w160/ch.webp' },
+            { code: 'ARS', name: 'Peso Argentino (ARS)', flagUrl: 'https://flagcdn.com/w160/ar.webp' },
+            { code: 'GTQ', name: 'Quetzal Guatemala (GTQ)', flagUrl: 'https://flagcdn.com/w160/gt.webp' },
+            { code: 'NIO', name: 'Córdoba Nicaragua (NIO)', flagUrl: 'https://flagcdn.com/w160/ni.webp' },
+            { code: 'DOP', name: 'Peso Dominicano (DOP)', flagUrl: 'https://flagcdn.com/w160/do.webp' },
+            { code: 'CNY', name: 'Yuan Chino (CNY)', flagUrl: 'https://flagcdn.com/w160/cn.webp' },
+            { code: 'AWG', name: 'Florín Aruba (AWG)', flagUrl: 'https://flagcdn.com/w160/aw.webp' },
+            { code: 'DKK', name: 'Corona Danesa (DKK)', flagUrl: 'https://flagcdn.com/w160/dk.webp' },
+            { code: 'ANG', name: 'Florín Caribeño (ANG)', flagUrl: 'https://flagcdn.com/w160/cw.webp' },
+            { code: 'BOB', name: 'Peso Bolivia (BOB)', flagUrl: 'https://flagcdn.com/w160/bo.webp' },
+            { code: 'TRY', name: 'Lira Turca (TRY)', flagUrl: 'https://flagcdn.com/w160/tr.webp' },
+            { code: 'SEK', name: 'Corona Sueca (SEK)', flagUrl: 'https://flagcdn.com/w160/se.webp' },
+            { code: 'THB', name: 'Baht Tailandia (THB)', flagUrl: 'https://flagcdn.com/w160/th.webp' },
+            { code: 'CRC', name: 'Colón Costa Rica (CRC)', flagUrl: 'https://flagcdn.com/w160/cr.webp' },
+            { code: 'KRW', name: 'Won Corea del Sur (KRW)', flagUrl: 'https://flagcdn.com/w160/kr.webp' },
+            { code: 'UYU', name: 'Peso Uruguay (UYU)', flagUrl: 'https://flagcdn.com/w160/uy.webp' },
+            { code: 'AED', name: 'Dirham Emiratos (AED)', flagUrl: 'https://flagcdn.com/w160/ae.webp' },
+            { code: 'HKD', name: 'Dólar Hong Kong (HKD)', flagUrl: 'https://flagcdn.com/w160/hk.webp' },
+            { code: 'NOK', name: 'Corona Noruega (NOK)', flagUrl: 'https://flagcdn.com/w160/no.webp' },
+            { code: 'HNL', name: 'Lempira Honduras (HNL)', flagUrl: 'https://flagcdn.com/w160/hn.webp' }
+        ];
+
         let currentStore = {
             montoEntrega: "0",
             montoRecibe: "0",
@@ -575,7 +644,16 @@
         const panel = document.getElementById('actionPanel');
         const inputEntrega = document.getElementById('inputEntrega');
         const inputRecibe = document.getElementById('inputRecibe');
+        const selectEntrega = document.getElementById('selectEntrega');
+        const selectRecibe = document.getElementById('selectRecibe');
         const toastMsg = document.getElementById('toastMsg');
+
+        // Poblar selects de divisas
+        function populateCurrencySelects() {
+            const optionsHtml = CURRENCIES.map(c => `<option value="${c.code}">${c.code} - ${c.name}</option>`).join('');
+            selectEntrega.innerHTML = optionsHtml;
+            selectRecibe.innerHTML = optionsHtml;
+        }
 
         // Toggle panel al hacer clic en el Assistive Touch
         btn.addEventListener('click', () => {
@@ -592,9 +670,9 @@
 
         function resizeToCurrentTab() {
             if (currentTab === 'montos') {
-                ipcRenderer.send('resize-window', { width: 330, height: 350 });
+                ipcRenderer.send('resize-window', { width: 340, height: 460 });
             } else {
-                ipcRenderer.send('resize-window', { width: 330, height: 510 });
+                ipcRenderer.send('resize-window', { width: 340, height: 560 });
             }
         }
 
@@ -650,13 +728,42 @@
         }
 
         function updateCurrencyDisplay() {
+            selectEntrega.value = currentStore.monedaEntrega.code;
+            selectRecibe.value = currentStore.monedaRecibe.code;
+
             document.getElementById('flagEntrega').src = currentStore.monedaEntrega.flagUrl;
-            document.getElementById('codeEntrega').innerText = currentStore.monedaEntrega.code;
             document.getElementById('labelEntregaCode').innerText = currentStore.monedaEntrega.code;
 
             document.getElementById('flagRecibe').src = currentStore.monedaRecibe.flagUrl;
-            document.getElementById('codeRecibe').innerText = currentStore.monedaRecibe.code;
             document.getElementById('labelRecibeCode').innerText = currentStore.monedaRecibe.code;
+        }
+
+        // Al cambiar de divisa en el select
+        async function onCurrencySelectChange(type) {
+            const selectedCode = type === 'entrega' ? selectEntrega.value : selectRecibe.value;
+            const currencyObj = CURRENCIES.find(c => c.code === selectedCode);
+            if (!currencyObj) return;
+
+            if (type === 'entrega') {
+                currentStore.monedaEntrega = { code: currencyObj.code, flagUrl: currencyObj.flagUrl };
+            } else {
+                currentStore.monedaRecibe = { code: currencyObj.code, flagUrl: currencyObj.flagUrl };
+            }
+
+            updateCurrencyDisplay();
+
+            try {
+                await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
+                    montoEntrega: inputEntrega.value.trim(),
+                    montoRecibe: inputRecibe.value.trim(),
+                    monedaEntrega: currentStore.monedaEntrega,
+                    monedaRecibe: currentStore.monedaRecibe
+                });
+                showToast(`Moneda cambiada a ${currencyObj.code}`);
+            } catch (err) {
+                console.error("Error saving currency:", err);
+                showToast("Error al cambiar moneda", true);
+            }
         }
 
         // Actualización en tiempo real al tipear (con debounce de 250ms)
@@ -790,6 +897,7 @@
         });
 
         // Carga inicial
+        populateCurrencySelects();
         loadStoreData();
     </script>
 </body>
