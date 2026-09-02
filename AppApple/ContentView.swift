@@ -258,6 +258,10 @@ struct ContentView: View {
                 }
             }
         }
+        .onAppear {
+            // Evitar que el iPad apague la pantalla (Auto-Lock)
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
         .animation(.easeInOut(duration: 0.8), value: socketObj.isIdle)
     }
 }

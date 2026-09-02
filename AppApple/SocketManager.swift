@@ -50,21 +50,18 @@ class SocketManagerObj: ObservableObject {
         
         socket?.on("estado_inicial") { [weak self] dataArray, ack in
             print("\n📥 SWIFT: Evento 'estado_inicial' recibido!")
-            print("📥 SWIFT: Datos recibidos: \(dataArray)")
             if let data = dataArray.first as? [String: Any] {
                 DispatchQueue.main.async {
+                    var amountsChanged = false
+                    
                     if let me = data["montoEntrega"] as? String {
-                        print("✅ SWIFT: UI - Asignando montoEntrega = \(me)")
+                        if self?.montoEntrega != me { amountsChanged = true }
                         self?.montoEntrega = me
-                    } else {
-                        print("⚠️ SWIFT: No se encontró 'montoEntrega' válido en estado_inicial")
                     }
                     
                     if let mr = data["montoRecibe"] as? String {
-                        print("✅ SWIFT: UI - Asignando montoRecibe = \(mr)")
+                        if self?.montoRecibe != mr { amountsChanged = true }
                         self?.montoRecibe = mr
-                    } else {
-                        print("⚠️ SWIFT: No se encontró 'montoRecibe' válido en estado_inicial")
                     }
                     
                     if let cEntrega = data["monedaEntrega"] as? [String: String] {
@@ -82,7 +79,11 @@ class SocketManagerObj: ObservableObject {
                     if let playlist = data["playlist"] as? [[String: Any]] {
                         self?.playlist = playlist
                     }
-                    self?.resetIdleTimer()
+                    
+                    // Solo resetear el timer de inactividad si los montos cambiaron o es el primer inicio
+                    if amountsChanged || self?.idleTimer == nil {
+                        self?.resetIdleTimer()
+                    }
                 }
             } else {
                 print("❌ SWIFT: Error - 'estado_inicial' no contiene un Diccionario válido.")
