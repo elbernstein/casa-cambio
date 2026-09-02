@@ -52,4 +52,6 @@ app.use((req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+server.keepAliveTimeout = 120000; // 120 segundos para evitar error -1005 en iOS
+server.headersTimeout = 120000;
 server.listen(PORT, () => console.log(`🚀 Servidor MVC corriendo en http://localhost:${PORT}`));
