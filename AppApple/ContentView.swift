@@ -169,8 +169,10 @@ struct ContentView: View {
                                             .font(.system(size: 30, weight: .bold))
                                             .foregroundColor(topBarBlue)
                                     }
-                                    Text(socketObj.montoEntrega)
+                                    Text(formatAmount(socketObj.montoEntrega))
                                         .font(.system(size: 140, weight: .bold))
+                                        .minimumScaleFactor(0.4)
+                                        .lineLimit(1)
                                         .foregroundColor(textTeal)
                                 }
                                 
@@ -210,8 +212,10 @@ struct ContentView: View {
                                             .font(.system(size: 30, weight: .bold))
                                             .foregroundColor(topBarBlue)
                                     }
-                                    Text(socketObj.montoRecibe)
+                                    Text(formatAmount(socketObj.montoRecibe))
                                         .font(.system(size: 140, weight: .bold))
+                                        .minimumScaleFactor(0.4)
+                                        .lineLimit(1)
                                         .foregroundColor(textDark)
                                 }
                                 
@@ -279,5 +283,26 @@ struct ContentView: View {
             UIApplication.shared.isIdleTimerDisabled = true
         }
         .animation(.easeInOut(duration: 0.8), value: socketObj.isIdle)
+    }
+    
+    // Función para formatear el monto con separador de miles y decimales
+    private func formatAmount(_ amountString: String) -> String {
+        let cleanString = amountString.replacingOccurrences(of: ",", with: ".")
+        guard let doubleValue = Double(cleanString) else { return amountString }
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        formatter.decimalSeparator = ","
+        
+        // Determinar si el número tiene decimales
+        if floor(doubleValue) == doubleValue {
+            formatter.maximumFractionDigits = 0
+        } else {
+            formatter.maximumFractionDigits = 2
+            formatter.minimumFractionDigits = 2
+        }
+        
+        return formatter.string(from: NSNumber(value: doubleValue)) ?? amountString
     }
 }
