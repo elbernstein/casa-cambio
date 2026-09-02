@@ -75,7 +75,7 @@ class SocketManagerObj: ObservableObject {
                     }
                     
                     if let settings = data["settings"] as? [String: Any],
-                       let timeout = settings["idleTimeoutSeconds"] as? Double {
+                       let timeout = (settings["idleTimeoutSeconds"] as? NSNumber)?.doubleValue {
                         self?.idleTimeout = timeout
                     }
                     
@@ -100,7 +100,7 @@ class SocketManagerObj: ObservableObject {
         
         socket?.on("settings_updated") { [weak self] data, ack in
             if let settings = data.first as? [String: Any],
-               let timeout = settings["idleTimeoutSeconds"] as? Double {
+               let timeout = (settings["idleTimeoutSeconds"] as? NSNumber)?.doubleValue {
                 DispatchQueue.main.async {
                     self?.idleTimeout = timeout
                     self?.resetIdleTimer()
