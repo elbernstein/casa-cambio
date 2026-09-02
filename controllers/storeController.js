@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const Store = require('../models/Store');
 const User = require('../models/User');
 const TransactionState = require('../models/TransactionState');
+const StoreSettings = require('../models/StoreSettings');
 
 exports.createStore = async (req, res) => {
     try {
@@ -96,17 +97,22 @@ exports.updateStoreCredentials = async (req, res) => {
 
 exports.updateStoreAmounts = async (req, res) => {
     try {
-        const { montoEntrega, montoRecibe } = req.body;
+        const { montoEntrega, montoRecibe, monedaEntrega, monedaRecibe } = req.body;
         const storeId = req.params.id;
         
         console.log(`\n[REST API] Recibido PUT /api/stores/${storeId}/amounts`);
         console.log(`[REST API] Montos a guardar: Entrega=${montoEntrega}, Recibe=${montoRecibe}`);
 
+        // Construir objeto de actualización condicionalmente
+        let updateData = { montoEntrega: montoEntrega?.toString(), montoRecibe: montoRecibe?.toString() };
+        if (monedaEntrega) updateData.monedaEntrega = monedaEntrega;
+        if (monedaRecibe) updateData.monedaRecibe = monedaRecibe;
+
         // Actualizar en base de datos
-        await TransactionState.findOneAndUpdate(
+        const updatedState = await TransactionState.findOneAndUpdate(
             { storeId }, 
-            { montoEntrega: montoEntrega.toString(), montoRecibe: montoRecibe.toString() },
-            { upsert: true }
+            updateData,
+            { upsert: true, new: true }
         );
         console.log(`[REST API] Base de datos actualizada con éxito.`);
 
@@ -114,15 +120,38 @@ exports.updateStoreAmounts = async (req, res) => {
         const io = req.app.get('io');
         if (io) {
             console.log(`[SOCKET EMIT] Emitiendo 'nuevo_monto' a la sala: ${storeId}`);
-            io.to(storeId).emit('nuevo_monto', { montoEntrega: montoEntrega.toString(), montoRecibe: montoRecibe.toString() });
+            io.to(storeId).emit('nuevo_monto', { 
+                montoEntrega: updatedState.montoEntrega, 
+                montoRecibe: updatedState.montoRecibe,
+                monedaEntrega: updatedState.monedaEntrega,
+                monedaRecibe: updatedState.monedaRecibe
+            });
             console.log(`[SOCKET EMIT] Evento disparado exitosamente.`);
         } else {
             console.error(`[SOCKET ERROR] No se encontró la instancia global 'io'`);
         }
 
-        res.json({ success: true, montoEntrega, montoRecibe });
+        res.json({ success: true, state: updatedState });
     } catch (error) {
         console.error("[REST ERROR] Fallo al procesar updateStoreAmounts:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.updateDefaultCurrencies = async (req, res) => {
+    try {
+        const { defaultMonedaEntrega, defaultMonedaRecibe } = req.body;
+        const storeId = req.params.id;
+
+        const updatedSettings = await StoreSettings.findOneAndUpdate(
+            { storeId },
+            { defaultMonedaEntrega, defaultMonedaRecibe },
+            { upsert: true, new: true }
+        );
+        
+        res.json({ success: true, settings: updatedSettings });
+    } catch (error) {
+        console.error("[REST ERROR] Fallo al procesar updateDefaultCurrencies:", error);
         res.status(500).json({ error: error.message });
     }
 };

@@ -5,6 +5,18 @@ import axios from 'axios';
 // URL Dinámica (local vs producción)
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://api.cambioseurodolar.com';
 
+const CURRENCIES = [
+  { code: 'USD', name: 'Dólar (USD)', flagUrl: 'https://flagcdn.com/w160/us.webp' },
+  { code: 'EUR', name: 'Euro (EUR)', flagUrl: 'https://flagcdn.com/w160/eu.webp' },
+  { code: 'CAD', name: 'Dólar Canadiense (CAD)', flagUrl: 'https://flagcdn.com/w160/ca.webp' },
+  { code: 'MXN', name: 'Peso Mexicano (MXN)', flagUrl: 'https://flagcdn.com/w160/mx.webp' },
+  { code: 'GBP', name: 'Libra Esterlina (GBP)', flagUrl: 'https://flagcdn.com/w160/gb.webp' },
+  { code: 'CLP', name: 'Peso Chileno (CLP)', flagUrl: 'https://flagcdn.com/w160/cl.webp' },
+  { code: 'PEN', name: 'Nuevo Sol Perú (PEN)', flagUrl: 'https://flagcdn.com/w160/pe.webp' },
+  { code: 'BRL', name: 'Real Brasileño (BRL)', flagUrl: 'https://flagcdn.com/w160/br.webp' },
+  { code: 'ARS', name: 'Peso Argentino (ARS)', flagUrl: 'https://flagcdn.com/w160/ar.webp' },
+  { code: 'COP', name: 'Peso Colombiano (COP)', flagUrl: 'https://flagcdn.com/w160/co.webp' }
+];
 const stores = ref([]);
 const loading = ref(true);
 const newStoreName = ref('');
@@ -34,7 +46,12 @@ const fetchStores = async () => {
   try {
     const res = await axios.get(`${API_URL}/api/stores`);
     if (stores.value.length === 0) {
-      stores.value = res.data;
+      // First load: setup default currencies if missing
+      stores.value = res.data.map(s => ({
+        ...s,
+        monedaEntrega: s.monedaEntrega || CURRENCIES.find(c => c.code === 'COP'),
+        monedaRecibe: s.monedaRecibe || CURRENCIES.find(c => c.code === 'USD')
+      }));
     } else {
       res.data.forEach(serverStore => {
         const localStore = stores.value.find(s => s._id === serverStore._id);
@@ -44,9 +61,15 @@ const fetchStores = async () => {
           if (!activeInputs.value[localStore._id]) {
             localStore.montoEntrega = serverStore.montoEntrega;
             localStore.montoRecibe = serverStore.montoRecibe;
+            localStore.monedaEntrega = serverStore.monedaEntrega || CURRENCIES.find(c => c.code === 'COP');
+            localStore.monedaRecibe = serverStore.monedaRecibe || CURRENCIES.find(c => c.code === 'USD');
           }
         } else {
-          stores.value.push(serverStore);
+          stores.value.push({
+            ...serverStore,
+            monedaEntrega: serverStore.monedaEntrega || CURRENCIES.find(c => c.code === 'COP'),
+            monedaRecibe: serverStore.monedaRecibe || CURRENCIES.find(c => c.code === 'USD')
+          });
         }
       });
     }
@@ -98,6 +121,11 @@ const fetchSettings = async () => {
     const res = await axios.get(`${API_URL}/api/settings/${managingStore.value._id}`);
     if (res.data && res.data.settings) {
       storeSettings.value.idleTimeoutSeconds = res.data.settings.idleTimeoutSeconds || 15;
+      storeSettings.value.defaultMonedaEntrega = res.data.settings.defaultMonedaEntrega || CURRENCIES.find(c => c.code === 'COP');
+      storeSettings.value.defaultMonedaRecibe = res.data.settings.defaultMonedaRecibe || CURRENCIES.find(c => c.code === 'USD');
+    } else {
+      storeSettings.value.defaultMonedaEntrega = CURRENCIES.find(c => c.code === 'COP');
+      storeSettings.value.defaultMonedaRecibe = CURRENCIES.find(c => c.code === 'USD');
     }
   } catch (error) {
     console.error("Error fetching settings:", error);
@@ -109,7 +137,14 @@ const saveSettings = async () => {
     await axios.put(`${API_URL}/api/settings/${managingStore.value._id}`, {
       idleTimeoutSeconds: storeSettings.value.idleTimeoutSeconds
     });
-    alert("Configuración de tiempo guardada correctamente.");
+    
+    // Save default currencies
+    await axios.put(`${API_URL}/api/stores/${managingStore.value._id}/currencies`, {
+      defaultMonedaEntrega: storeSettings.value.defaultMonedaEntrega,
+      defaultMonedaRecibe: storeSettings.value.defaultMonedaRecibe
+    });
+    
+    alert("Configuración guardada correctamente.");
   } catch (error) {
     console.error("Error saving settings:", error);
     alert("Error al guardar la configuración.");
@@ -231,13 +266,22 @@ const emitAmounts = async (store) => {
   try {
     await axios.put(`${API_URL}/api/stores/${store._id}/amounts`, {
       montoEntrega: store.montoEntrega,
-      montoRecibe: store.montoRecibe
+      montoRecibe: store.montoRecibe,
+      monedaEntrega: store.monedaEntrega,
+      monedaRecibe: store.monedaRecibe
     });
   } catch (error) {
     console.error("Error emitting amounts:", error);
   } finally {
     emittingAmounts.value[store._id] = false;
   }
+};
+
+const swapCurrencies = (store) => {
+  const temp = store.monedaEntrega;
+  store.monedaEntrega = store.monedaRecibe;
+  store.monedaRecibe = temp;
+  emitAmounts(store); // Auto-save after swap
 };
 
 const handleAmountInput = (store) => {
@@ -301,12 +345,24 @@ onMounted(() => {
         <div class="manage-grid">
           <!-- Columna 1: Ajustes -->
           <div class="manage-section">
-            <h4>⚙️ Configuración (Reposo)</h4>
+            <h4>⚙️ Configuración (Reposo & Monedas)</h4>
             <div class="form-group">
-              <label>Tiempo de inactividad para activar salvapantallas (Segundos):</label>
+              <label>Moneda Entrega por defecto:</label>
+              <select v-model="storeSettings.defaultMonedaEntrega" class="input-dark">
+                <option v-for="c in CURRENCIES" :key="'ent_'+c.code" :value="c">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Moneda Recibe por defecto:</label>
+              <select v-model="storeSettings.defaultMonedaRecibe" class="input-dark">
+                <option v-for="c in CURRENCIES" :key="'rec_'+c.code" :value="c">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tiempo inactividad salvapantallas (Segundos):</label>
               <div class="flex-row">
                 <input type="number" v-model="storeSettings.idleTimeoutSeconds" min="5" max="300" />
-                <button @click="saveSettings" class="btn-save">Guardar</button>
+                <button @click="saveSettings" class="btn-save">Guardar Todo</button>
               </div>
             </div>
             
@@ -387,17 +443,29 @@ onMounted(() => {
             <span class="status-indicator active">En Línea</span>
           </div>
           <div class="card-body">
+            <!-- Selector de Divisas y Swap -->
+            <div class="currency-selectors">
+              <select v-model="store.monedaEntrega" @change="emitAmounts(store)" class="currency-select">
+                <option v-for="c in CURRENCIES" :key="c.code" :value="c">{{ c.name }}</option>
+              </select>
+              <button @click="swapCurrencies(store)" class="btn-swap" title="Invertir Divisas">🔁</button>
+              <select v-model="store.monedaRecibe" @change="emitAmounts(store)" class="currency-select">
+                <option v-for="c in CURRENCIES" :key="c.code" :value="c">{{ c.name }}</option>
+              </select>
+            </div>
+            
+            <!-- Montos -->
             <div class="stat">
-              <span class="label">Monto Entrega (COP):</span>
+              <span class="label">Usted entrega ({{ store.monedaEntrega?.code || 'COP' }}):</span>
               <div class="amount-input-group">
-                <span class="currency-symbol">$</span>
+                <img v-if="store.monedaEntrega" :src="store.monedaEntrega.flagUrl" class="input-flag" alt="flag">
                 <input type="text" v-model="store.montoEntrega" @input="handleAmountInput(store)" class="amount-input" />
               </div>
             </div>
             <div class="stat">
-              <span class="label">Monto Recibe (USD):</span>
+              <span class="label">Usted recibe ({{ store.monedaRecibe?.code || 'USD' }}):</span>
               <div class="amount-input-group">
-                <span class="currency-symbol">$</span>
+                <img v-if="store.monedaRecibe" :src="store.monedaRecibe.flagUrl" class="input-flag" alt="flag">
                 <input type="text" v-model="store.montoRecibe" @input="handleAmountInput(store)" class="amount-input" />
               </div>
             </div>
@@ -484,8 +552,17 @@ body {
 .card-body .stat { margin-bottom: 1rem; display: flex; flex-direction: column; }
 .stat .label { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem; }
 .amount-input-group { display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1rem; }
-.currency-symbol { color: var(--accent); font-size: 1.5rem; font-weight: bold; margin-right: 0.5rem; }
+.input-flag { width: 32px; height: 24px; object-fit: cover; border-radius: 2px; margin-right: 0.5rem; }
 .amount-input { background: transparent; border: none; color: white; font-size: 1.5rem; font-weight: bold; width: 100%; outline: none; }
+
+.currency-selectors { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 1rem; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px;}
+.currency-select { 
+  flex: 1; padding: 0.5rem; background: rgba(255,255,255,0.1); color: white; 
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; outline: none; 
+}
+.currency-select option { color: black; }
+.btn-swap { background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; transition: 0.2s; }
+.btn-swap:hover { background: rgba(255,255,255,0.2); transform: rotate(180deg); }
 
 .btn-emit {
   width: 100%; margin-top: 0.5rem; padding: 0.75rem; border-radius: 8px; border: none;

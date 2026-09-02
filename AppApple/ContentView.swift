@@ -141,13 +141,31 @@ struct ContentView: View {
                             
                             // Lado Izquierdo: Usted entrega
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Usted entrega")
+                                Text("Usted entrega / You send")
                                     .font(.system(size: 30))
                                     .foregroundColor(textGray)
-                                HStack {
-                                    Text("🇨🇴")
-                                        .font(.system(size: 30))
-                                    Text("COP")
+                                HStack(alignment: .center, spacing: 10) {
+                                    if let flagUrlString = socketObj.monedaEntrega?["flagUrl"],
+                                       let url = URL(string: flagUrlString) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                            case .success(let image):
+                                                image.resizable().aspectRatio(contentMode: .fit)
+                                            case .failure:
+                                                Text("🇨🇴").font(.system(size: 30))
+                                            @unknown default:
+                                                EmptyView()
+                                            }
+                                        }
+                                        .frame(width: 45, height: 30)
+                                        .cornerRadius(4)
+                                    } else {
+                                        Text("🇨🇴").font(.system(size: 30))
+                                    }
+                                    
+                                    Text(socketObj.monedaEntrega?["code"] ?? "COP")
                                         .font(.system(size: 30, weight: .bold))
                                         .foregroundColor(topBarBlue)
                                 }
@@ -164,13 +182,31 @@ struct ContentView: View {
                             
                             // Lado Derecho: Usted recibe
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Usted recibe")
+                                Text("Usted recibe / You get")
                                     .font(.system(size: 30))
                                     .foregroundColor(textGray)
-                                HStack {
-                                    Text("🇺🇸")
-                                        .font(.system(size: 30))
-                                    Text("USD")
+                                HStack(alignment: .center, spacing: 10) {
+                                    if let flagUrlString = socketObj.monedaRecibe?["flagUrl"],
+                                       let url = URL(string: flagUrlString) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                            case .success(let image):
+                                                image.resizable().aspectRatio(contentMode: .fit)
+                                            case .failure:
+                                                Text("🇺🇸").font(.system(size: 30))
+                                            @unknown default:
+                                                EmptyView()
+                                            }
+                                        }
+                                        .frame(width: 45, height: 30)
+                                        .cornerRadius(4)
+                                    } else {
+                                        Text("🇺🇸").font(.system(size: 30))
+                                    }
+                                    
+                                    Text(socketObj.monedaRecibe?["code"] ?? "USD")
                                         .font(.system(size: 30, weight: .bold))
                                         .foregroundColor(topBarBlue)
                                 }

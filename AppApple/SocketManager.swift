@@ -8,6 +8,8 @@ class SocketManagerObj: ObservableObject {
     
     @Published var montoEntrega: String = "0.00"
     @Published var montoRecibe: String = "0.00"
+    @Published var monedaEntrega: [String: String]? = nil
+    @Published var monedaRecibe: [String: String]? = nil
     @Published var isAuthenticated: Bool = false
     @Published var loginError: String? = nil
     @Published var isIdle: Bool = true
@@ -65,6 +67,13 @@ class SocketManagerObj: ObservableObject {
                         print("⚠️ SWIFT: No se encontró 'montoRecibe' válido en estado_inicial")
                     }
                     
+                    if let cEntrega = data["monedaEntrega"] as? [String: String] {
+                        self?.monedaEntrega = cEntrega
+                    }
+                    if let cRecibe = data["monedaRecibe"] as? [String: String] {
+                        self?.monedaRecibe = cRecibe
+                    }
+                    
                     if let settings = data["settings"] as? [String: Any],
                        let timeout = settings["idleTimeoutSeconds"] as? Double {
                         self?.idleTimeout = timeout
@@ -117,6 +126,14 @@ class SocketManagerObj: ObservableObject {
                     } else {
                         print("❌ SWIFT: Error - No se pudo extraer 'montoRecibe' como String")
                     }
+                    
+                    if let cEntrega = data["monedaEntrega"] as? [String: String] {
+                        self?.monedaEntrega = cEntrega
+                    }
+                    if let cRecibe = data["monedaRecibe"] as? [String: String] {
+                        self?.monedaRecibe = cRecibe
+                    }
+                    
                     self?.resetIdleTimer()
                 }
             } else {

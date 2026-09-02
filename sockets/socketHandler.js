@@ -34,7 +34,9 @@ module.exports = (io) => {
             
             socket.emit('estado_inicial', { 
                 montoEntrega: state.montoEntrega || "0",
-                montoRecibe: state.montoRecibe || "0", 
+                montoRecibe: state.montoRecibe || "0",
+                monedaEntrega: state.monedaEntrega,
+                monedaRecibe: state.monedaRecibe,
                 settings: settings,
                 playlist: playlist
             });
@@ -42,12 +44,22 @@ module.exports = (io) => {
 
         socket.on('enviar_monto', async (data) => {
             if (role !== 'emisor') return;
-            const { montoEntrega, montoRecibe } = data;
+            const { montoEntrega, montoRecibe, monedaEntrega, monedaRecibe } = data;
             
             try {
-                await TransactionState.findOneAndUpdate({ storeId: storeRoom }, { montoEntrega, montoRecibe, lastUpdated: Date.now() }, { upsert: true });
+                // Construir objeto de actualización condicionalmente
+                let updateData = { montoEntrega, montoRecibe, lastUpdated: Date.now() };
+                if (monedaEntrega) updateData.monedaEntrega = monedaEntrega;
+                if (monedaRecibe) updateData.monedaRecibe = monedaRecibe;
+
+                const updatedState = await TransactionState.findOneAndUpdate({ storeId: storeRoom }, updateData, { upsert: true, new: true });
                 console.log(`💰 [Tienda ${storeRoom}] Montos actualizados: ${montoEntrega} -> ${montoRecibe}`);
-                io.to(storeRoom).emit('nuevo_monto', { montoEntrega, montoRecibe });
+                io.to(storeRoom).emit('nuevo_monto', { 
+                    montoEntrega, 
+                    montoRecibe,
+                    monedaEntrega: updatedState.monedaEntrega,
+                    monedaRecibe: updatedState.monedaRecibe
+                });
             } catch (error) {
                 console.error("Error al guardar monto:", error);
             }
