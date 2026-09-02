@@ -222,7 +222,7 @@ const uploadAd = async () => {
 
   uploadingAd.value = true;
   const formData = new FormData();
-  formData.append('adFile', newAdFile.value);
+  formData.append('ad_file', newAdFile.value);
   formData.append('durationSeconds', newAdDuration.value);
 
   try {
