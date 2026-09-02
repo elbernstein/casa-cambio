@@ -237,10 +237,23 @@ struct ContentView: View {
                                             VideoPlayer(player: AVPlayer(url: adUrl))
                                                 .disabled(true) // Deshabilita controles para que el tap pase
                                         } else {
-                                            AsyncImage(url: adUrl) { image in
-                                                image.resizable().aspectRatio(contentMode: .fit)
-                                            } placeholder: {
-                                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                                            AsyncImage(url: adUrl) { phase in
+                                                switch phase {
+                                                case .empty:
+                                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                                                case .success(let image):
+                                                    image.resizable().aspectRatio(contentMode: .fit)
+                                                case .failure:
+                                                    VStack(spacing: 10) {
+                                                        Image(systemName: "photo.badge.exclamationmark")
+                                                            .font(.system(size: 50))
+                                                            .foregroundColor(.gray)
+                                                        Text("No se pudo cargar el medio")
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                @unknown default:
+                                                    EmptyView()
+                                                }
                                             }
                                         }
                                     }

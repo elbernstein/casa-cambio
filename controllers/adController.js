@@ -36,7 +36,8 @@ exports.uploadAd = async (req, res) => {
             return res.status(400).json({ error: `Límite de publicidades alcanzado (${settings.maxAdsLimit})` });
         }
 
-        const isVideo = req.file.mimetype.startsWith('video/');
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const isVideo = req.file.mimetype.startsWith('video/') || ['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext);
         const type = isVideo ? 'video' : 'image';
         const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
         
