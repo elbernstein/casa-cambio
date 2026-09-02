@@ -239,6 +239,7 @@ struct ContentView: View {
                                 if adType == "video" {
                                     VideoPlayer(player: AVPlayer(url: adUrl))
                                         .edgesIgnoringSafeArea(.all)
+                                        .disabled(true) // Deshabilita controles para que el tap pase
                                 } else {
                                     AsyncImage(url: adUrl) { image in
                                         image.resizable().aspectRatio(contentMode: .fit)
@@ -247,6 +248,10 @@ struct ContentView: View {
                                     }
                                     .edgesIgnoringSafeArea(.all)
                                 }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                socketObj.resetIdleTimer()
                             }
                             .transition(.opacity)
                             .zIndex(2)

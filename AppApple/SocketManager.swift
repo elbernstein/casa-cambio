@@ -82,7 +82,7 @@ class SocketManagerObj: ObservableObject {
                     if let playlist = data["playlist"] as? [[String: Any]] {
                         self?.playlist = playlist
                     }
-                    self?.isIdle = true
+                    self?.resetIdleTimer()
                 }
             } else {
                 print("❌ SWIFT: Error - 'estado_inicial' no contiene un Diccionario válido.")
@@ -144,7 +144,7 @@ class SocketManagerObj: ObservableObject {
 
     }
     
-    private func resetIdleTimer() {
+    func resetIdleTimer() {
         self.isIdle = false
         idleTimer?.invalidate()
         idleTimer = Timer.scheduledTimer(withTimeInterval: self.idleTimeout, repeats: false) { [weak self] _ in
