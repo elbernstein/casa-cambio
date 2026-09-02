@@ -1,0 +1,30 @@
+{
+  "name": "windows-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "build": {
+    "appId": "com.casacambio.widget",
+    "productName": "Casa Cambio Widget",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    }
+  },
+  "devDependencies": {
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3",
+    "electron-store": "^11.0.2"
+  },
+  "dependencies": {
+    "axios": "^1.20.0"
+  }
+}

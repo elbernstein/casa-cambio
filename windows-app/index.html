@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Casa Cambio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-btn: rgba(24, 24, 28, 0.75);
+            --bg-panel: rgba(22, 24, 30, 0.94);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --input-bg: rgba(15, 23, 42, 0.65);
+            --input-border: rgba(255, 255, 255, 0.14);
+            --green: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 8px;
+            overflow: hidden;
+            background: transparent;
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text-main);
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            height: 100vh;
+        }
+
+        /* Botón Assistive Touch */
+        .assistive-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: var(--bg-btn);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            -webkit-app-region: drag;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 100;
+            border: 1.5px solid var(--border-glass);
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s;
+        }
+
+        .assistive-btn:hover {
+            transform: scale(1.06);
+            background: rgba(35, 38, 48, 0.88);
+        }
+
+        .assistive-btn:active {
+            transform: scale(0.96);
+        }
+
+        .assistive-inner {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.85);
+            border: 3px solid rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+            -webkit-app-region: no-drag;
+            pointer-events: auto;
+        }
+
+        /* Panel Principal Flotante */
+        .panel {
+            display: flex;
+            opacity: 0;
+            transform: scale(0.94) translateY(-8px);
+            pointer-events: none;
+            position: absolute;
+            top: 68px;
+            left: 8px;
+            width: 310px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+            border: 1px solid var(--border-glass);
+            -webkit-app-region: no-drag;
+            flex-direction: column;
+            gap: 12px;
+            transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .panel.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+
+        /* Encabezado y Selector de Pestañas */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tabs-container {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 3px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 7px 10px;
+            border: none;
+            border-radius: 9px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+        }
+
+        /* Indicador de estado en vivo */
+        .live-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 0 2px;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: pulse 1.6s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.4; transform: scale(0.9); }
+        }
+
+        /* Pestaña: Montos */
+        .currency-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .currency-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .currency-item img {
+            width: 22px;
+            height: 15px;
+            border-radius: 2px;
+            object-fit: cover;
+        }
+
+        .swap-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .swap-btn:hover {
+            background: var(--accent);
+            transform: rotate(180deg);
+        }
+
+        .amount-box {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .amount-label {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .amount-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .amount-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 10px 14px;
+            font-family: 'Inter', monospace;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .amount-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+        }
+
+        .sync-icon {
+            position: absolute;
+            right: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .sync-icon.active {
+            opacity: 1;
+            color: var(--green);
+        }
+
+        /* Pestaña: Publicidad */
+        .ad-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .file-dropzone {
+            border: 1.5px dashed var(--border-glass);
+            border-radius: 14px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.25);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .file-dropzone:hover {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .file-dropzone input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .file-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: white;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .duration-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .duration-row label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .duration-input {
+            width: 75px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            color: white;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            outline: none;
+        }
+
+        .btn-upload-ad {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+            transition: all 0.2s;
+        }
+
+        .btn-upload-ad:hover {
+            box-shadow: 0 6px 16px rgba(217, 119, 6, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn-upload-ad:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Lista de Publicidades Activas */
+        .playlist-title {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .playlist-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 10px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .item-thumb {
+            width: 36px;
+            height: 24px;
+            border-radius: 4px;
+            object-fit: cover;
+            background: #111;
+        }
+
+        .item-info {
+            flex: 1;
+            margin-left: 10px;
+            font-size: 12px;
+            color: #ddd;
+        }
+
+        .item-del {
+            background: transparent;
+            border: none;
+            color: #f87171;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .item-del:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Mensaje flotante de notificación */
+        .toast-msg {
+            font-size: 11.5px;
+            text-align: center;
+            font-weight: 600;
+            min-height: 16px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .toast-msg.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Botón Assistive Touch -->
+    <div class="assistive-btn" id="mainBtn" title="Clic para abrir panel">
+        <div class="assistive-inner" id="innerClick"></div>
+    </div>
+
+    <!-- Panel de Control Principal -->
+    <div class="panel" id="actionPanel">
+        
+        <!-- Pestañas -->
+        <div class="tabs-container">
+            <button class="tab-btn active" id="tabMontosBtn" onclick="switchTab('montos')">
+                <span>💵</span> Montos
+            </button>
+            <button class="tab-btn" id="tabPublicidadBtn" onclick="switchTab('publicidad')">
+                <span>📺</span> Publicidad
+            </button>
+        </div>
+
+        <!-- Estado en vivo -->
+        <div class="live-status">
+            <div class="live-badge">
+                <div class="pulse-dot"></div>
+                <span id="storeNameLabel">En vivo</span>
+            </div>
+            <span id="syncText">Tipea para actualizar</span>
+        </div>
+
+        <!-- VISTA 1: MONTOS -->
+        <div id="viewMontos" style="display: flex; flex-direction: column; gap: 12px;">
+            
+            <!-- Monedas y Swap -->
+            <div class="currency-row">
+                <div class="currency-item" id="curEntregaInfo">
+                    <img id="flagEntrega" src="https://flagcdn.com/w160/ca.webp" alt="Flag">
+                    <span id="codeEntrega">CAD</span>
+                </div>
+                <button class="swap-btn" title="Invertir divisas" onclick="swapCurrencies()">⇄</button>
+                <div class="currency-item" id="curRecibeInfo">
+                    <img id="flagRecibe" src="https://flagcdn.com/w160/co.webp" alt="Flag">
+                    <span id="codeRecibe">COP</span>
+                </div>
+            </div>
+
+            <!-- Input: Usted Entrega -->
+            <div class="amount-box">
+                <div class="amount-label">
+                    <span>Usted entrega</span>
+                    <span id="labelEntregaCode">CAD</span>
+                </div>
+                <div class="amount-input-wrapper">
+                    <input type="text" id="inputEntrega" class="amount-input" placeholder="0" oninput="onAmountType('entrega')">
+                    <span class="sync-icon" id="syncEntrega">✓</span>
+                </div>
+            </div>
+
+            <!-- Input: Usted Recibe -->
+            <div class="amount-box">
+                <div class="amount-label">
+                    <span>Usted recibe</span>
+                    <span id="labelRecibeCode">COP</span>
+                </div>
+                <div class="amount-input-wrapper">
+                    <input type="text" id="inputRecibe" class="amount-input" placeholder="0" oninput="onAmountType('recibe')">
+                    <span class="sync-icon" id="syncRecibe">✓</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- VISTA 2: PUBLICIDAD -->
+        <div id="viewPublicidad" class="ad-section" style="display: none;">
+            
+            <div class="file-dropzone">
+                <input type="file" id="adFileInput" accept="image/*,video/mp4" onchange="onFileSelected(this)">
+                <div class="file-text">Selecciona o arrastra una imagen o video MP4</div>
+                <div class="file-name" id="selectedFileName">Sin archivo</div>
+            </div>
+
+            <div class="duration-row">
+                <label>Duración en pantalla:</label>
+                <div>
+                    <input type="number" id="adDuration" class="duration-input" value="10" min="3" max="120"> s
+                </div>
+            </div>
+
+            <button class="btn-upload-ad" id="btnUpload" onclick="uploadAdFile()">
+                📤 Subir Anuncio a Pantalla
+            </button>
+
+            <!-- Lista de anuncios activos -->
+            <div class="playlist-title">Anuncios en Reproducción</div>
+            <div class="playlist-items" id="playlistContainer">
+                <div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">Cargando anuncios...</div>
+            </div>
+
+        </div>
+
+        <div class="toast-msg" id="toastMsg"></div>
+
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const axios = require('axios');
+
+        const API_URL = "https://api.cambioseurodolar.com";
+        const storeId = "6a975d0648d3ed28b3dbd255";
+
+        let currentStore = {
+            montoEntrega: "0",
+            montoRecibe: "0",
+            monedaEntrega: { code: "CAD", flagUrl: "https://flagcdn.com/w160/ca.webp" },
+            monedaRecibe: { code: "COP", flagUrl: "https://flagcdn.com/w160/co.webp" }
+        };
+
+        let currentTab = 'montos';
+        let isOpen = false;
+        let debounceTimer = null;
+
+        const btn = document.getElementById('innerClick');
+        const panel = document.getElementById('actionPanel');
+        const inputEntrega = document.getElementById('inputEntrega');
+        const inputRecibe = document.getElementById('inputRecibe');
+        const toastMsg = document.getElementById('toastMsg');
+
+        // Toggle panel al hacer clic en el Assistive Touch
+        btn.addEventListener('click', () => {
+            isOpen = !isOpen;
+            if (isOpen) {
+                panel.classList.add('show');
+                resizeToCurrentTab();
+                loadStoreData();
+            } else {
+                panel.classList.remove('show');
+                ipcRenderer.send('resize-window', { width: 70, height: 70 });
+            }
+        });
+
+        function resizeToCurrentTab() {
+            if (currentTab === 'montos') {
+                ipcRenderer.send('resize-window', { width: 330, height: 350 });
+            } else {
+                ipcRenderer.send('resize-window', { width: 330, height: 510 });
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tabMontosBtn').classList.toggle('active', tab === 'montos');
+            document.getElementById('tabPublicidadBtn').classList.toggle('active', tab === 'publicidad');
+
+            document.getElementById('viewMontos').style.display = tab === 'montos' ? 'flex' : 'none';
+            document.getElementById('viewPublicidad').style.display = tab === 'publicidad' ? 'flex' : 'none';
+
+            resizeToCurrentTab();
+
+            if (tab === 'publicidad') {
+                loadPlaylist();
+            }
+        }
+
+        function showToast(text, isError = false) {
+            toastMsg.innerText = text;
+            toastMsg.style.color = isError ? 'var(--danger)' : 'var(--green)';
+            toastMsg.classList.add('show');
+            setTimeout(() => { toastMsg.classList.remove('show'); }, 2500);
+        }
+
+        // Cargar datos actuales desde el servidor
+        async function loadStoreData() {
+            try {
+                const res = await axios.get(`${API_URL}/api/stores`);
+                const store = res.data.find(s => s._id === storeId);
+                if (store) {
+                    currentStore = {
+                        ...currentStore,
+                        ...store,
+                        monedaEntrega: store.monedaEntrega || currentStore.monedaEntrega,
+                        monedaRecibe: store.monedaRecibe || currentStore.monedaRecibe
+                    };
+                    document.getElementById('storeNameLabel').innerText = `${store.name || 'Veracruz'} (En vivo)`;
+                    
+                    // Solo actualizar inputs si el usuario no tiene el foco en ellos
+                    if (document.activeElement !== inputEntrega) {
+                        inputEntrega.value = store.montoEntrega || "";
+                    }
+                    if (document.activeElement !== inputRecibe) {
+                        inputRecibe.value = store.montoRecibe || "";
+                    }
+
+                    updateCurrencyDisplay();
+                }
+            } catch (err) {
+                console.error("Error loading store:", err);
+            }
+        }
+
+        function updateCurrencyDisplay() {
+            document.getElementById('flagEntrega').src = currentStore.monedaEntrega.flagUrl;
+            document.getElementById('codeEntrega').innerText = currentStore.monedaEntrega.code;
+            document.getElementById('labelEntregaCode').innerText = currentStore.monedaEntrega.code;
+
+            document.getElementById('flagRecibe').src = currentStore.monedaRecibe.flagUrl;
+            document.getElementById('codeRecibe').innerText = currentStore.monedaRecibe.code;
+            document.getElementById('labelRecibeCode').innerText = currentStore.monedaRecibe.code;
+        }
+
+        // Actualización en tiempo real al tipear (con debounce de 250ms)
+        function onAmountType(type) {
+            const syncIcon = document.getElementById(type === 'entrega' ? 'syncEntrega' : 'syncRecibe');
+            syncIcon.classList.add('active');
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const montoEntrega = inputEntrega.value.trim();
+                const montoRecibe = inputRecibe.value.trim();
+
+                try {
+                    await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
+                        montoEntrega,
+                        montoRecibe,
+                        monedaEntrega: currentStore.monedaEntrega,
+                        monedaRecibe: currentStore.monedaRecibe
+                    });
+                    document.getElementById('syncText').innerText = "✓ Sincronizado en iPad";
+                    setTimeout(() => {
+                        document.getElementById('syncText').innerText = "Tipea para actualizar";
+                        syncIcon.classList.remove('active');
+                    }, 1200);
+                } catch (err) {
+                    console.error("Error updating:", err);
+                    document.getElementById('syncText').innerText = "Error al sincronizar";
+                }
+            }, 250);
+        }
+
+        // Invertir divisas
+        async function swapCurrencies() {
+            const temp = currentStore.monedaEntrega;
+            currentStore.monedaEntrega = currentStore.monedaRecibe;
+            currentStore.monedaRecibe = temp;
+            updateCurrencyDisplay();
+
+            try {
+                await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
+                    montoEntrega: inputEntrega.value.trim(),
+                    montoRecibe: inputRecibe.value.trim(),
+                    monedaEntrega: currentStore.monedaEntrega,
+                    monedaRecibe: currentStore.monedaRecibe
+                });
+                showToast("Divisas invertidas");
+            } catch (err) {
+                showToast("Error al invertir divisas", true);
+            }
+        }
+
+        // Archivos y Publicidad
+        function onFileSelected(input) {
+            const file = input.files[0];
+            document.getElementById('selectedFileName').innerText = file ? file.name : 'Sin archivo';
+        }
+
+        async function uploadAdFile() {
+            const fileInput = document.getElementById('adFileInput');
+            if (!fileInput.files.length) {
+                showToast("Selecciona un archivo primero", true);
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const duration = document.getElementById('adDuration').value || 10;
+            const btnUpload = document.getElementById('btnUpload');
+
+            const formData = new FormData();
+            formData.append('ad_file', file);
+            formData.append('durationSeconds', duration);
+
+            btnUpload.disabled = true;
+            btnUpload.innerText = "⏳ Subiendo a pantalla...";
+
+            try {
+                await axios.post(`${API_URL}/api/ads/${storeId}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                showToast("¡Publicidad subida con éxito!");
+                fileInput.value = "";
+                document.getElementById('selectedFileName').innerText = "Sin archivo";
+                loadPlaylist();
+            } catch (err) {
+                console.error("Error uploading ad:", err);
+                showToast("Error al subir publicidad", true);
+            } finally {
+                btnUpload.disabled = false;
+                btnUpload.innerText = "📤 Subir Anuncio a Pantalla";
+            }
+        }
+
+        async function loadPlaylist() {
+            const container = document.getElementById('playlistContainer');
+            try {
+                const res = await axios.get(`${API_URL}/api/ads/${storeId}`);
+                const list = res.data.playlist || [];
+                if (list.length === 0) {
+                    container.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 8px;">No hay anuncios activos</div>';
+                    return;
+                }
+
+                container.innerHTML = list.map((ad, idx) => `
+                    <div class="playlist-item">
+                        <img src="${ad.url}" class="item-thumb" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2236%22 height=%2224%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23333%22/></svg>'">
+                        <div class="item-info">
+                            <strong>#${idx + 1}</strong> • ${ad.durationSeconds}s (${ad.type || 'img'})
+                        </div>
+                        <button class="item-del" title="Eliminar anuncio" onclick="deleteAd('${ad._id}')">🗑️</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = '<div style="font-size: 11px; color: var(--danger); text-align: center; padding: 8px;">Error al cargar anuncios</div>';
+            }
+        }
+
+        async function deleteAd(adId) {
+            try {
+                await axios.delete(`${API_URL}/api/ads/${storeId}/${adId}`);
+                showToast("Anuncio eliminado");
+                loadPlaylist();
+            } catch (err) {
+                showToast("Error al eliminar", true);
+            }
+        }
+
+        // Atajo global (notificación)
+        ipcRenderer.on('notification', (event, msg) => {
+            showToast(msg);
+            loadStoreData();
+        });
+
+        // Carga inicial
+        loadStoreData();
+    </script>
+</body>
+</html>
