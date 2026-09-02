@@ -43,33 +43,39 @@ class SocketManagerObj: ObservableObject {
         
         socket.on("estado_inicial") { [weak self] dataArray, ack in
             if let data = dataArray.first as? [String: Any] {
-                if let me = data["montoEntrega"] as? String { self?.montoEntrega = me }
-                if let mr = data["montoRecibe"] as? String { self?.montoRecibe = mr }
-                
-                if let settings = data["settings"] as? [String: Any],
-                   let timeout = settings["idleTimeoutSeconds"] as? Double {
-                    self?.idleTimeout = timeout
+                DispatchQueue.main.async {
+                    if let me = data["montoEntrega"] as? String { self?.montoEntrega = me }
+                    if let mr = data["montoRecibe"] as? String { self?.montoRecibe = mr }
+                    
+                    if let settings = data["settings"] as? [String: Any],
+                       let timeout = settings["idleTimeoutSeconds"] as? Double {
+                        self?.idleTimeout = timeout
+                    }
+                    
+                    if let playlist = data["playlist"] as? [[String: Any]] {
+                        self?.playlist = playlist
+                    }
+                    self?.isIdle = true
                 }
-                
-                if let playlist = data["playlist"] as? [[String: Any]] {
-                    self?.playlist = playlist
-                }
-                self?.isIdle = true
             }
         }
         
         socket.on("playlist_updated") { [weak self] data, ack in
             if let newPlaylist = data.first as? [[String: Any]] {
-                self?.playlist = newPlaylist
-                self?.currentAdIndex = 0
+                DispatchQueue.main.async {
+                    self?.playlist = newPlaylist
+                    self?.currentAdIndex = 0
+                }
             }
         }
         
         socket.on("settings_updated") { [weak self] data, ack in
             if let settings = data.first as? [String: Any],
                let timeout = settings["idleTimeoutSeconds"] as? Double {
-                self?.idleTimeout = timeout
-                self?.resetIdleTimer()
+                DispatchQueue.main.async {
+                    self?.idleTimeout = timeout
+                    self?.resetIdleTimer()
+                }
             }
         }
         
