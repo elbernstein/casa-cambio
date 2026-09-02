@@ -231,23 +231,26 @@ struct ContentView: View {
                 // PANTALLA DE PUBLICIDAD (INACTIVIDAD) - Sobre todo
                 if socketObj.isIdle && !socketObj.playlist.isEmpty {
                     let currentAd = socketObj.playlist[socketObj.currentAdIndex]
-                    if let adUrlString = currentAd["url"] as? String, let adUrl = URL(string: adUrlString), let adType = currentAd["type"] as? String {
-                        ZStack {
-                            Color.black.edgesIgnoringSafeArea(.all)
-                            if adType == "video" {
-                                VideoPlayer(player: AVPlayer(url: adUrl))
+                    if let adUrlStringRaw = currentAd["url"] as? String, let adType = currentAd["type"] as? String {
+                        let adUrlString = adUrlStringRaw.replacingOccurrences(of: "http://", with: "https://")
+                        if let adUrl = URL(string: adUrlString) {
+                            ZStack {
+                                Color.black.edgesIgnoringSafeArea(.all)
+                                if adType == "video" {
+                                    VideoPlayer(player: AVPlayer(url: adUrl))
+                                        .edgesIgnoringSafeArea(.all)
+                                } else {
+                                    AsyncImage(url: adUrl) { image in
+                                        image.resizable().aspectRatio(contentMode: .fit)
+                                    } placeholder: {
+                                        ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    }
                                     .edgesIgnoringSafeArea(.all)
-                            } else {
-                                AsyncImage(url: adUrl) { image in
-                                    image.resizable().aspectRatio(contentMode: .fit)
-                                } placeholder: {
-                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 }
-                                .edgesIgnoringSafeArea(.all)
                             }
+                            .transition(.opacity)
+                            .zIndex(2)
                         }
-                        .transition(.opacity)
-                        .zIndex(2)
                     }
                 }
             }
