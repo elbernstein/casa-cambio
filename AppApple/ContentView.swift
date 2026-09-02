@@ -229,7 +229,10 @@ struct ContentView: View {
                         if socketObj.isIdle && !socketObj.playlist.isEmpty {
                             let currentAd = socketObj.playlist[socketObj.currentAdIndex]
                             if let adUrlStringRaw = currentAd["url"] as? String, let adType = currentAd["type"] as? String {
-                                let adUrlString = adUrlStringRaw.replacingOccurrences(of: "http://", with: "https://")
+                                // Extraer solo el nombre del archivo y forzar la URL absoluta segura
+                                let filename = adUrlStringRaw.components(separatedBy: "/").last ?? ""
+                                let adUrlString = "https://api.cambioseurodolar.com/uploads/\(filename)"
+                                
                                 if let adUrl = URL(string: adUrlString) {
                                     ZStack {
                                         Color.white
