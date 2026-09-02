@@ -25,6 +25,8 @@ const editReceptorUsername = ref('');
 const editNewPassword = ref('');
 const savingCredentials = ref(false);
 
+const emittingAmounts = ref({});
+
 // ---- LOGICA DE TIENDAS ----
 const fetchStores = async () => {
   try {
@@ -206,6 +208,22 @@ const updateStoreCredentials = async () => {
   }
 };
 
+const emitAmounts = async (store) => {
+  emittingAmounts.value[store._id] = true;
+  try {
+    await axios.put(`${API_URL}/api/stores/${store._id}/amounts`, {
+      montoEntrega: store.montoEntrega,
+      montoRecibe: store.montoRecibe
+    });
+    // No hace falta hacer fetch, se actualiza localmente y emite
+  } catch (error) {
+    console.error("Error emitting amounts:", error);
+    alert("Error al emitir los montos.");
+  } finally {
+    emittingAmounts.value[store._id] = false;
+  }
+};
+
 onMounted(() => {
   fetchStores();
   setInterval(fetchStores, 3000);
@@ -344,12 +362,22 @@ onMounted(() => {
           <div class="card-body">
             <div class="stat">
               <span class="label">Monto Entrega (COP):</span>
-              <span class="value monto">${{ store.montoEntrega }}</span>
+              <div class="amount-input-group">
+                <span class="currency-symbol">$</span>
+                <input type="text" v-model="store.montoEntrega" class="amount-input" />
+              </div>
             </div>
             <div class="stat">
               <span class="label">Monto Recibe (USD):</span>
-              <span class="value monto">${{ store.montoRecibe }}</span>
+              <div class="amount-input-group">
+                <span class="currency-symbol">$</span>
+                <input type="text" v-model="store.montoRecibe" class="amount-input" />
+              </div>
             </div>
+            <button @click="emitAmounts(store)" class="btn-emit" :disabled="emittingAmounts[store._id]">
+              {{ emittingAmounts[store._id] ? 'Emitiendo...' : '📡 Emitir al iPad' }}
+            </button>
+            <hr class="card-divider">
             <button @click="openManageModal(store)" class="btn-manage">⚙️ Gestionar Publicidad</button>
             <button @click="openUsersModal(store)" class="btn-users">👥 Usuarios y Credenciales</button>
           </div>
@@ -428,8 +456,18 @@ body {
 .status-indicator.active { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
 .card-body .stat { margin-bottom: 1rem; display: flex; flex-direction: column; }
 .stat .label { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem; }
-.stat .value { font-size: 1.1rem; font-weight: 500; }
-.stat .value.monto { font-size: 1.5rem; color: var(--accent); font-weight: 700; }
+.amount-input-group { display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1rem; }
+.currency-symbol { color: var(--accent); font-size: 1.5rem; font-weight: bold; margin-right: 0.5rem; }
+.amount-input { background: transparent; border: none; color: white; font-size: 1.5rem; font-weight: bold; width: 100%; outline: none; }
+
+.btn-emit {
+  width: 100%; margin-top: 0.5rem; padding: 0.75rem; border-radius: 8px; border: none;
+  background: var(--accent); color: white; cursor: pointer; font-weight: bold;
+}
+.btn-emit:hover { background: #2563eb; }
+.btn-emit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.card-divider { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1.5rem 0 1rem 0; }
 
 .btn-manage {
   width: 100%; margin-top: 1rem; padding: 0.75rem; border-radius: 8px; border: none;

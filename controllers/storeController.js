@@ -93,3 +93,27 @@ exports.updateStoreCredentials = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+exports.updateStoreAmounts = async (req, res) => {
+    try {
+        const { montoEntrega, montoRecibe } = req.body;
+        const storeId = req.params.id;
+
+        // Actualizar en base de datos
+        await TransactionState.findOneAndUpdate(
+            { storeId }, 
+            { montoEntrega: montoEntrega.toString(), montoRecibe: montoRecibe.toString() },
+            { upsert: true }
+        );
+
+        // Emitir el evento de Socket al cuarto de la tienda
+        const io = req.app.get('io');
+        if (io) {
+            io.to(storeId).emit('nuevo_monto', [{ montoEntrega: montoEntrega.toString(), montoRecibe: montoRecibe.toString() }]);
+        }
+
+        res.json({ success: true, montoEntrega, montoRecibe });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
