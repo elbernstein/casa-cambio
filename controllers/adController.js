@@ -54,7 +54,8 @@ exports.uploadAd = async (req, res) => {
         await emitPlaylistUpdate(storeId, req.app.get('io'));
         res.json({ success: true, ad: newAd });
     } catch (error) {
-        res.status(500).json({ error: 'Database error' });
+        console.error("uploadAd error:", error);
+        res.status(500).json({ error: error.message || 'Database error' });
     }
 };
 
