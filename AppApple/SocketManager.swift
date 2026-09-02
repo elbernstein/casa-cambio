@@ -28,11 +28,11 @@ class SocketManagerObj: ObservableObject {
     }
     
     func setupSocket(token: String) {
-        let manager = SocketManager(socketURL: URL(string: "https://api.cambioseurodolar.com")!, config: [.log(true), .compress, .connectParams(["token": token])])
-        socket = manager.defaultSocket
+        self.manager = SocketManager(socketURL: URL(string: "https://api.cambioseurodolar.com")!, config: [.log(true), .compress, .connectParams(["token": token])])
+        self.socket = self.manager.defaultSocket
         
         setupSocketEvents()
-        socket.connect()
+        self.socket.connect()
     }
     
     private func setupSocketEvents() {
