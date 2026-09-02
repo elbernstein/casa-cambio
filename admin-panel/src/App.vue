@@ -20,8 +20,10 @@ const uploadingAd = ref(false);
 
 // Variables Módulo de Usuarios
 const managingUsersStore = ref(null);
-const storeUsers = ref([]);
-const newResetPassword = ref(null);
+const editEmisorUsername = ref('');
+const editReceptorUsername = ref('');
+const editNewPassword = ref('');
+const savingCredentials = ref(false);
 
 // ---- LOGICA DE TIENDAS ----
 const fetchStores = async () => {
@@ -150,11 +152,16 @@ const deleteAd = async (adId) => {
 // ---- LOGICA DE USUARIOS ----
 const openUsersModal = async (store) => {
   managingUsersStore.value = store;
-  newResetPassword.value = null;
+  editEmisorUsername.value = '';
+  editReceptorUsername.value = '';
+  editNewPassword.value = '';
   try {
     const res = await axios.get(`${API_URL}/api/stores/${store._id}/users`);
     if (res.data && res.data.users) {
-      storeUsers.value = res.data.users;
+      const emisor = res.data.users.find(u => u.role === 'emisor');
+      const receptor = res.data.users.find(u => u.role === 'receptor');
+      if (emisor) editEmisorUsername.value = emisor.username;
+      if (receptor) editReceptorUsername.value = receptor.username;
     }
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -163,20 +170,39 @@ const openUsersModal = async (store) => {
 
 const closeUsersModal = () => {
   managingUsersStore.value = null;
-  storeUsers.value = [];
-  newResetPassword.value = null;
+  editEmisorUsername.value = '';
+  editReceptorUsername.value = '';
+  editNewPassword.value = '';
 };
 
-const resetStorePassword = async () => {
-  if (!confirm("¿Seguro que deseas generar una NUEVA contraseña para esta tienda? La anterior dejará de funcionar de inmediato.")) return;
+const updateStoreCredentials = async () => {
+  if (!editEmisorUsername.value || !editReceptorUsername.value) {
+    alert("Los nombres de usuario no pueden estar vacíos.");
+    return;
+  }
+  
+  if (editNewPassword.value && !confirm("¿Seguro que deseas cambiar la contraseña de esta tienda? La contraseña anterior dejará de funcionar de inmediato.")) return;
+
+  savingCredentials.value = true;
   try {
-    const res = await axios.put(`${API_URL}/api/stores/${managingUsersStore.value._id}/users/reset`);
-    if (res.data && res.data.newPassword) {
-      newResetPassword.value = res.data.newPassword;
-    }
+    const payload = {
+      emisorUsername: editEmisorUsername.value,
+      receptorUsername: editReceptorUsername.value,
+      newPassword: editNewPassword.value || undefined
+    };
+    
+    await axios.put(`${API_URL}/api/stores/${managingUsersStore.value._id}/users`, payload);
+    alert("Credenciales guardadas correctamente.");
+    editNewPassword.value = ''; // Limpiar el campo de contraseña
   } catch (error) {
-    console.error("Error resetting password:", error);
-    alert("Error al resetear la contraseña.");
+    console.error("Error updating credentials:", error);
+    if (error.response && error.response.data && error.response.data.error) {
+      alert(error.response.data.error);
+    } else {
+      alert("Error al guardar credenciales.");
+    }
+  } finally {
+    savingCredentials.value = false;
   }
 };
 
@@ -280,23 +306,30 @@ onMounted(() => {
     <div v-if="managingUsersStore" class="modal-overlay">
       <div class="glass-card modal-content">
         <div class="modal-header">
-          <h3>Usuarios: {{ managingUsersStore.name }}</h3>
+          <h3>Credenciales: {{ managingUsersStore.name }}</h3>
           <button @click="closeUsersModal" class="btn-x">×</button>
         </div>
         
-        <div class="credentials-box" v-if="storeUsers.length > 0">
-          <div v-for="user in storeUsers" :key="user._id">
-            <p><strong>{{ user.role === 'emisor' ? 'Usuario Windows (Emisor)' : 'Usuario iPad (Receptor)' }}:</strong> <span class="highlight">{{ user.username }}</span></p>
+        <div class="credentials-box form-credentials">
+          <div class="form-group">
+            <label>Usuario Windows (Emisor):</label>
+            <input type="text" v-model="editEmisorUsername" class="input-dark" placeholder="Cargando..." />
+          </div>
+          <div class="form-group">
+            <label>Usuario iPad (Receptor):</label>
+            <input type="text" v-model="editReceptorUsername" class="input-dark" placeholder="Cargando..." />
+          </div>
+          <hr>
+          <div class="form-group">
+            <label>Nueva Contraseña (Opcional):</label>
+            <input type="text" v-model="editNewPassword" class="input-dark" placeholder="Dejar en blanco para no cambiarla" />
+            <small>Si escribes algo aquí, la contraseña anterior dejará de funcionar.</small>
           </div>
         </div>
-        <div v-else>Cargando usuarios...</div>
 
-        <div v-if="newResetPassword" class="credentials-box" style="background: rgba(16, 185, 129, 0.2); border: 1px solid var(--success);">
-          <p><strong>NUEVA CONTRASEÑA:</strong> <span class="highlight pass">{{ newResetPassword }}</span></p>
-          <small>Cópiala ahora, no volverá a mostrarse. Deberás iniciar sesión nuevamente en Windows y en el iPad con esta clave.</small>
-        </div>
-
-        <button v-if="!newResetPassword" @click="resetStorePassword" class="btn-danger-full">⚠️ Resetear Contraseña (Generar Nueva)</button>
+        <button @click="updateStoreCredentials" class="btn-save-full" :disabled="savingCredentials">
+          {{ savingCredentials ? 'Guardando...' : 'Guardar Credenciales' }}
+        </button>
       </div>
     </div>
 
@@ -410,11 +443,20 @@ body {
 }
 .btn-users:hover { background: rgba(16, 185, 129, 0.25); }
 
-.btn-danger-full {
+.btn-save-full {
   width: 100%; margin-top: 1rem; padding: 0.75rem; border-radius: 8px; border: none;
-  background: rgba(239, 68, 68, 0.2); color: var(--danger); cursor: pointer; font-weight: bold;
+  background: var(--success); color: white; cursor: pointer; font-weight: bold;
 }
-.btn-danger-full:hover { background: var(--danger); color: white; }
+.btn-save-full:hover { background: #059669; }
+.btn-save-full:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.form-credentials .form-group { margin-bottom: 1rem; }
+.input-dark { 
+  width: 100%; padding: 0.75rem; border-radius: 6px; 
+  border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); 
+  color: white; margin-top: 0.5rem; box-sizing: border-box; font-family: monospace; font-size: 1rem;
+}
+.input-dark:focus { outline: 2px solid var(--accent); }
 
 /* Modales */
 .modal-overlay {

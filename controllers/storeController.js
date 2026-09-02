@@ -66,16 +66,30 @@ exports.getUsersByStore = async (req, res) => {
     }
 };
 
-exports.resetStorePasswords = async (req, res) => {
+exports.updateStoreCredentials = async (req, res) => {
     try {
-        const newPlainPassword = Math.random().toString(36).slice(-6); // Nueva contraseña aleatoria
-        const hashedPassword = await bcrypt.hash(newPlainPassword, 10);
-        
-        // Actualizar todos los usuarios de la tienda
-        await User.updateMany({ storeId: req.params.id }, { password: hashedPassword });
-        
-        res.json({ success: true, newPassword: newPlainPassword });
+        const { emisorUsername, receptorUsername, newPassword } = req.body;
+        const storeId = req.params.id;
+
+        // Si se provee una contraseña nueva, la hasheamos y se la ponemos a ambos
+        if (newPassword) {
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await User.updateMany({ storeId }, { password: hashedPassword });
+        }
+
+        // Actualizar nombres si se proveen
+        if (emisorUsername) {
+            await User.findOneAndUpdate({ storeId, role: 'emisor' }, { username: emisorUsername });
+        }
+        if (receptorUsername) {
+            await User.findOneAndUpdate({ storeId, role: 'receptor' }, { username: receptorUsername });
+        }
+
+        res.json({ success: true });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ error: "Ese nombre de usuario ya está en uso." });
+        }
         res.status(500).json({ error: error.message });
     }
 };

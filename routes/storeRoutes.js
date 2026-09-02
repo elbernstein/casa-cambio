@@ -5,6 +5,6 @@ const storeController = require('../controllers/storeController');
 router.post('/', storeController.createStore);
 router.get('/', storeController.getStores);
 router.get('/:id/users', storeController.getUsersByStore);
-router.put('/:id/users/reset', storeController.resetStorePasswords);
+router.put('/:id/users', storeController.updateStoreCredentials);
 
 module.exports = router;
