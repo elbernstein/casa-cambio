@@ -444,7 +444,7 @@ onMounted(() => {
                 <div class="ad-preview">
                   <span class="ad-number">{{ index + 1 }}</span>
                   <div v-if="ad.type === 'video'" class="video-badge">🎬 Video</div>
-                  <img v-else :src="API_URL + ad.url" alt="ad preview" />
+                  <img v-else :src="ad.url.startsWith('http') ? ad.url.replace('http://', 'https://') : API_URL + ad.url" alt="ad preview" />
                 </div>
                 <div class="ad-info">
                   <p class="ad-dur">⏱ {{ ad.durationSeconds }}s</p>
