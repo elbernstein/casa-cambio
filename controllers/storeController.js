@@ -98,6 +98,9 @@ exports.updateStoreAmounts = async (req, res) => {
     try {
         const { montoEntrega, montoRecibe } = req.body;
         const storeId = req.params.id;
+        
+        console.log(`\n[REST API] Recibido PUT /api/stores/${storeId}/amounts`);
+        console.log(`[REST API] Montos a guardar: Entrega=${montoEntrega}, Recibe=${montoRecibe}`);
 
         // Actualizar en base de datos
         await TransactionState.findOneAndUpdate(
@@ -105,15 +108,21 @@ exports.updateStoreAmounts = async (req, res) => {
             { montoEntrega: montoEntrega.toString(), montoRecibe: montoRecibe.toString() },
             { upsert: true }
         );
+        console.log(`[REST API] Base de datos actualizada con éxito.`);
 
         // Emitir el evento de Socket al cuarto de la tienda
         const io = req.app.get('io');
         if (io) {
+            console.log(`[SOCKET EMIT] Emitiendo 'nuevo_monto' a la sala: ${storeId}`);
             io.to(storeId).emit('nuevo_monto', { montoEntrega: montoEntrega.toString(), montoRecibe: montoRecibe.toString() });
+            console.log(`[SOCKET EMIT] Evento disparado exitosamente.`);
+        } else {
+            console.error(`[SOCKET ERROR] No se encontró la instancia global 'io'`);
         }
 
         res.json({ success: true, montoEntrega, montoRecibe });
     } catch (error) {
+        console.error("[REST ERROR] Fallo al procesar updateStoreAmounts:", error);
         res.status(500).json({ error: error.message });
     }
 };

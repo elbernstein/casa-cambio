@@ -39,15 +39,31 @@ class SocketManagerObj: ObservableObject {
     
     private func setupSocketEvents() {
         socket?.on(clientEvent: .connect) { [weak self] data, ack in
-            print("🟢 Conectado al servidor Socket.IO")
+            print("\n==================================")
+            print("🟢 SWIFT: Conectado al servidor Socket.IO")
+            print("🟢 SWIFT: Emitiendo join_room para: \(self?.pdvID ?? "")")
+            print("==================================\n")
             self?.socket?.emit("join_room", self?.pdvID ?? "")
         }
         
         socket?.on("estado_inicial") { [weak self] dataArray, ack in
+            print("\n📥 SWIFT: Evento 'estado_inicial' recibido!")
+            print("📥 SWIFT: Datos recibidos: \(dataArray)")
             if let data = dataArray.first as? [String: Any] {
                 DispatchQueue.main.async {
-                    if let me = data["montoEntrega"] as? String { self?.montoEntrega = me }
-                    if let mr = data["montoRecibe"] as? String { self?.montoRecibe = mr }
+                    if let me = data["montoEntrega"] as? String {
+                        print("✅ SWIFT: UI - Asignando montoEntrega = \(me)")
+                        self?.montoEntrega = me
+                    } else {
+                        print("⚠️ SWIFT: No se encontró 'montoEntrega' válido en estado_inicial")
+                    }
+                    
+                    if let mr = data["montoRecibe"] as? String {
+                        print("✅ SWIFT: UI - Asignando montoRecibe = \(mr)")
+                        self?.montoRecibe = mr
+                    } else {
+                        print("⚠️ SWIFT: No se encontró 'montoRecibe' válido en estado_inicial")
+                    }
                     
                     if let settings = data["settings"] as? [String: Any],
                        let timeout = settings["idleTimeoutSeconds"] as? Double {
@@ -59,6 +75,8 @@ class SocketManagerObj: ObservableObject {
                     }
                     self?.isIdle = true
                 }
+            } else {
+                print("❌ SWIFT: Error - 'estado_inicial' no contiene un Diccionario válido.")
             }
         }
         
@@ -82,12 +100,27 @@ class SocketManagerObj: ObservableObject {
         }
         
         socket?.on("nuevo_monto") { [weak self] dataArray, ack in
+            print("\n🚀 SWIFT: Evento 'nuevo_monto' recibido en tiempo real!")
+            print("🚀 SWIFT: Datos crudos: \(dataArray)")
             if let data = dataArray.first as? [String: Any] {
                 DispatchQueue.main.async {
-                    if let newMontoEntrega = data["montoEntrega"] as? String { self?.montoEntrega = newMontoEntrega }
-                    if let newMontoRecibe = data["montoRecibe"] as? String { self?.montoRecibe = newMontoRecibe }
+                    if let newMontoEntrega = data["montoEntrega"] as? String {
+                        print("✅ SWIFT: UI - Actualizando montoEntrega a = \(newMontoEntrega)")
+                        self?.montoEntrega = newMontoEntrega
+                    } else {
+                        print("❌ SWIFT: Error - No se pudo extraer 'montoEntrega' como String")
+                    }
+                    
+                    if let newMontoRecibe = data["montoRecibe"] as? String {
+                        print("✅ SWIFT: UI - Actualizando montoRecibe a = \(newMontoRecibe)")
+                        self?.montoRecibe = newMontoRecibe
+                    } else {
+                        print("❌ SWIFT: Error - No se pudo extraer 'montoRecibe' como String")
+                    }
                     self?.resetIdleTimer()
                 }
+            } else {
+                print("❌ SWIFT: Error - Los datos de 'nuevo_monto' no son un Diccionario válido.")
             }
         }
         
