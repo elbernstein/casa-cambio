@@ -48,6 +48,8 @@ exports.getStores = async (req, res) => {
                 name: store.name,
                 montoEntrega: state.montoEntrega || "0",
                 montoRecibe: state.montoRecibe || "0",
+                monedaEntrega: state.monedaEntrega || null,
+                monedaRecibe: state.monedaRecibe || null,
                 adUrl: state.adUrl || null,
                 adType: state.adType || null
             };
