@@ -18,6 +18,11 @@ const newAdFile = ref(null);
 const newAdDuration = ref(10);
 const uploadingAd = ref(false);
 
+// Variables Módulo de Usuarios
+const managingUsersStore = ref(null);
+const storeUsers = ref([]);
+const newResetPassword = ref(null);
+
 // ---- LOGICA DE TIENDAS ----
 const fetchStores = async () => {
   try {
@@ -142,6 +147,39 @@ const deleteAd = async (adId) => {
   }
 };
 
+// ---- LOGICA DE USUARIOS ----
+const openUsersModal = async (store) => {
+  managingUsersStore.value = store;
+  newResetPassword.value = null;
+  try {
+    const res = await axios.get(`${API_URL}/api/stores/${store._id}/users`);
+    if (res.data && res.data.users) {
+      storeUsers.value = res.data.users;
+    }
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  }
+};
+
+const closeUsersModal = () => {
+  managingUsersStore.value = null;
+  storeUsers.value = [];
+  newResetPassword.value = null;
+};
+
+const resetStorePassword = async () => {
+  if (!confirm("¿Seguro que deseas generar una NUEVA contraseña para esta tienda? La anterior dejará de funcionar de inmediato.")) return;
+  try {
+    const res = await axios.put(`${API_URL}/api/stores/${managingUsersStore.value._id}/users/reset`);
+    if (res.data && res.data.newPassword) {
+      newResetPassword.value = res.data.newPassword;
+    }
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    alert("Error al resetear la contraseña.");
+  }
+};
+
 onMounted(() => {
   fetchStores();
   setInterval(fetchStores, 3000);
@@ -238,6 +276,30 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Modal de Usuarios y Credenciales -->
+    <div v-if="managingUsersStore" class="modal-overlay">
+      <div class="glass-card modal-content">
+        <div class="modal-header">
+          <h3>Usuarios: {{ managingUsersStore.name }}</h3>
+          <button @click="closeUsersModal" class="btn-x">×</button>
+        </div>
+        
+        <div class="credentials-box" v-if="storeUsers.length > 0">
+          <div v-for="user in storeUsers" :key="user._id">
+            <p><strong>{{ user.role === 'emisor' ? 'Usuario Windows (Emisor)' : 'Usuario iPad (Receptor)' }}:</strong> <span class="highlight">{{ user.username }}</span></p>
+          </div>
+        </div>
+        <div v-else>Cargando usuarios...</div>
+
+        <div v-if="newResetPassword" class="credentials-box" style="background: rgba(16, 185, 129, 0.2); border: 1px solid var(--success);">
+          <p><strong>NUEVA CONTRASEÑA:</strong> <span class="highlight pass">{{ newResetPassword }}</span></p>
+          <small>Cópiala ahora, no volverá a mostrarse. Deberás iniciar sesión nuevamente en Windows y en el iPad con esta clave.</small>
+        </div>
+
+        <button v-if="!newResetPassword" @click="resetStorePassword" class="btn-danger-full">⚠️ Resetear Contraseña (Generar Nueva)</button>
+      </div>
+    </div>
+
     <main class="content">
       <h2 class="section-title">Tiendas Activas</h2>
       <div class="card-container" v-if="!loading && stores.length > 0">
@@ -256,6 +318,7 @@ onMounted(() => {
               <span class="value monto">${{ store.montoRecibe }}</span>
             </div>
             <button @click="openManageModal(store)" class="btn-manage">⚙️ Gestionar Publicidad</button>
+            <button @click="openUsersModal(store)" class="btn-users">👥 Usuarios y Credenciales</button>
           </div>
         </div>
       </div>
@@ -340,6 +403,18 @@ body {
   background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-weight: bold;
 }
 .btn-manage:hover { background: rgba(255,255,255,0.2); }
+
+.btn-users {
+  width: 100%; margin-top: 0.5rem; padding: 0.75rem; border-radius: 8px; border: none;
+  background: rgba(16, 185, 129, 0.15); color: var(--success); cursor: pointer; font-weight: bold;
+}
+.btn-users:hover { background: rgba(16, 185, 129, 0.25); }
+
+.btn-danger-full {
+  width: 100%; margin-top: 1rem; padding: 0.75rem; border-radius: 8px; border: none;
+  background: rgba(239, 68, 68, 0.2); color: var(--danger); cursor: pointer; font-weight: bold;
+}
+.btn-danger-full:hover { background: var(--danger); color: white; }
 
 /* Modales */
 .modal-overlay {

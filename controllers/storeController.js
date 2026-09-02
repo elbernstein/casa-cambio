@@ -43,7 +43,7 @@ exports.getStores = async (req, res) => {
         const storesData = stores.map(store => {
             const state = states.find(s => s.storeId.toString() === store._id.toString()) || {};
             return {
-                id: store._id,
+                _id: store._id,
                 name: store.name,
                 montoEntrega: state.montoEntrega || "0",
                 montoRecibe: state.montoRecibe || "0",
@@ -52,6 +52,29 @@ exports.getStores = async (req, res) => {
             };
         });
         res.json(storesData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getUsersByStore = async (req, res) => {
+    try {
+        const users = await User.find({ storeId: req.params.id }).select('username role');
+        res.json({ success: true, users });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.resetStorePasswords = async (req, res) => {
+    try {
+        const newPlainPassword = Math.random().toString(36).slice(-6); // Nueva contraseña aleatoria
+        const hashedPassword = await bcrypt.hash(newPlainPassword, 10);
+        
+        // Actualizar todos los usuarios de la tienda
+        await User.updateMany({ storeId: req.params.id }, { password: hashedPassword });
+        
+        res.json({ success: true, newPassword: newPlainPassword });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
