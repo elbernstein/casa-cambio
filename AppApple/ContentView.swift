@@ -127,136 +127,134 @@ struct ContentView: View {
                     .padding(.vertical, 20)
                     .background(topBarBlue)
                     
-                    Spacer()
-                    
-                    // Contenido Central
-                    VStack(alignment: .leading, spacing: 40) {
-                        Text("OPERACIÓN ACTUAL")
-                            .font(.system(size: 40, weight: .medium))
-                            .foregroundColor(textGray)
-                            .padding(.leading, 10)
-                        
-                        // Tarjeta Blanca con Sombra
-                        HStack(alignment: .center, spacing: 60) {
+                    // Zona inferior (Debajo de la barra superior)
+                    ZStack {
+                        // Contenido Central
+                        VStack(alignment: .leading, spacing: 40) {
+                            Text("OPERACIÓN ACTUAL")
+                                .font(.system(size: 40, weight: .medium))
+                                .foregroundColor(textGray)
+                                .padding(.leading, 10)
                             
-                            // Lado Izquierdo: Usted entrega
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Usted entrega / You send")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(textGray)
-                                HStack(alignment: .center, spacing: 10) {
-                                    if let flagUrlString = socketObj.monedaEntrega?["flagUrl"],
-                                       let url = URL(string: flagUrlString) {
-                                        AsyncImage(url: url) { phase in
-                                            switch phase {
-                                            case .empty:
-                                                ProgressView()
-                                            case .success(let image):
-                                                image.resizable().aspectRatio(contentMode: .fit)
-                                            case .failure:
-                                                Text("🇨🇴").font(.system(size: 30))
-                                            @unknown default:
-                                                EmptyView()
+                            // Tarjeta Blanca con Sombra
+                            HStack(alignment: .center, spacing: 60) {
+                                
+                                // Lado Izquierdo: Usted entrega
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Usted entrega / You send")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(textGray)
+                                    HStack(alignment: .center, spacing: 10) {
+                                        if let flagUrlString = socketObj.monedaEntrega?["flagUrl"],
+                                           let url = URL(string: flagUrlString) {
+                                            AsyncImage(url: url) { phase in
+                                                switch phase {
+                                                case .empty:
+                                                    ProgressView()
+                                                case .success(let image):
+                                                    image.resizable().aspectRatio(contentMode: .fit)
+                                                case .failure:
+                                                    Text("🇨🇴").font(.system(size: 30))
+                                                @unknown default:
+                                                    EmptyView()
+                                                }
                                             }
+                                            .frame(width: 45, height: 30)
+                                            .cornerRadius(4)
+                                        } else {
+                                            Text("🇨🇴").font(.system(size: 30))
                                         }
-                                        .frame(width: 45, height: 30)
-                                        .cornerRadius(4)
-                                    } else {
-                                        Text("🇨🇴").font(.system(size: 30))
+                                        
+                                        Text(socketObj.monedaEntrega?["code"] ?? "COP")
+                                            .font(.system(size: 30, weight: .bold))
+                                            .foregroundColor(topBarBlue)
                                     }
-                                    
-                                    Text(socketObj.monedaEntrega?["code"] ?? "COP")
-                                        .font(.system(size: 30, weight: .bold))
-                                        .foregroundColor(topBarBlue)
+                                    Text(socketObj.montoEntrega)
+                                        .font(.system(size: 140, weight: .bold))
+                                        .foregroundColor(textTeal)
                                 }
-                                Text(socketObj.montoEntrega)
-                                    .font(.system(size: 140, weight: .bold))
+                                
+                                // Flecha central
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 100, weight: .light))
                                     .foregroundColor(textTeal)
+                                    .padding(.horizontal, 40)
+                                
+                                // Lado Derecho: Usted recibe
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Usted recibe / You get")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(textGray)
+                                    HStack(alignment: .center, spacing: 10) {
+                                        if let flagUrlString = socketObj.monedaRecibe?["flagUrl"],
+                                           let url = URL(string: flagUrlString) {
+                                            AsyncImage(url: url) { phase in
+                                                switch phase {
+                                                case .empty:
+                                                    ProgressView()
+                                                case .success(let image):
+                                                    image.resizable().aspectRatio(contentMode: .fit)
+                                                case .failure:
+                                                    Text("🇺🇸").font(.system(size: 30))
+                                                @unknown default:
+                                                    EmptyView()
+                                                }
+                                            }
+                                            .frame(width: 45, height: 30)
+                                            .cornerRadius(4)
+                                        } else {
+                                            Text("🇺🇸").font(.system(size: 30))
+                                        }
+                                        
+                                        Text(socketObj.monedaRecibe?["code"] ?? "USD")
+                                            .font(.system(size: 30, weight: .bold))
+                                            .foregroundColor(topBarBlue)
+                                    }
+                                    Text(socketObj.montoRecibe)
+                                        .font(.system(size: 140, weight: .bold))
+                                        .foregroundColor(textDark)
+                                }
+                                
                             }
+                            .padding(.vertical, 80)
+                            .padding(.horizontal, 100)
+                            .background(Color.white)
+                            .cornerRadius(40)
+                            .shadow(color: Color.black.opacity(0.08), radius: 30, x: 0, y: 15)
                             
-                            // Flecha central
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 100, weight: .light))
-                                .foregroundColor(textTeal)
-                                .padding(.horizontal, 40)
-                            
-                            // Lado Derecho: Usted recibe
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Usted recibe / You get")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(textGray)
-                                HStack(alignment: .center, spacing: 10) {
-                                    if let flagUrlString = socketObj.monedaRecibe?["flagUrl"],
-                                       let url = URL(string: flagUrlString) {
-                                        AsyncImage(url: url) { phase in
-                                            switch phase {
-                                            case .empty:
-                                                ProgressView()
-                                            case .success(let image):
+                        }
+                        .padding(.horizontal, 60)
+                        
+                        // PANTALLA DE PUBLICIDAD (INACTIVIDAD) - Solo cubre la zona inferior
+                        if socketObj.isIdle && !socketObj.playlist.isEmpty {
+                            let currentAd = socketObj.playlist[socketObj.currentAdIndex]
+                            if let adUrlStringRaw = currentAd["url"] as? String, let adType = currentAd["type"] as? String {
+                                let adUrlString = adUrlStringRaw.replacingOccurrences(of: "http://", with: "https://")
+                                if let adUrl = URL(string: adUrlString) {
+                                    ZStack {
+                                        Color.white
+                                        if adType == "video" {
+                                            VideoPlayer(player: AVPlayer(url: adUrl))
+                                                .disabled(true) // Deshabilita controles para que el tap pase
+                                        } else {
+                                            AsyncImage(url: adUrl) { image in
                                                 image.resizable().aspectRatio(contentMode: .fit)
-                                            case .failure:
-                                                Text("🇺🇸").font(.system(size: 30))
-                                            @unknown default:
-                                                EmptyView()
+                                            } placeholder: {
+                                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .gray))
                                             }
                                         }
-                                        .frame(width: 45, height: 30)
-                                        .cornerRadius(4)
-                                    } else {
-                                        Text("🇺🇸").font(.system(size: 30))
                                     }
-                                    
-                                    Text(socketObj.monedaRecibe?["code"] ?? "USD")
-                                        .font(.system(size: 30, weight: .bold))
-                                        .foregroundColor(topBarBlue)
-                                }
-                                Text(socketObj.montoRecibe)
-                                    .font(.system(size: 140, weight: .bold))
-                                    .foregroundColor(textDark)
-                            }
-                            
-                        }
-                        .padding(.vertical, 80)
-                        .padding(.horizontal, 100)
-                        .background(Color.white)
-                        .cornerRadius(40)
-                        .shadow(color: Color.black.opacity(0.08), radius: 30, x: 0, y: 15)
-                        
-                    }
-                    .padding(.horizontal, 60)
-                    
-                    Spacer()
-                }
-                
-                // PANTALLA DE PUBLICIDAD (INACTIVIDAD) - Sobre todo
-                if socketObj.isIdle && !socketObj.playlist.isEmpty {
-                    let currentAd = socketObj.playlist[socketObj.currentAdIndex]
-                    if let adUrlStringRaw = currentAd["url"] as? String, let adType = currentAd["type"] as? String {
-                        let adUrlString = adUrlStringRaw.replacingOccurrences(of: "http://", with: "https://")
-                        if let adUrl = URL(string: adUrlString) {
-                            ZStack {
-                                Color.black.edgesIgnoringSafeArea(.all)
-                                if adType == "video" {
-                                    VideoPlayer(player: AVPlayer(url: adUrl))
-                                        .edgesIgnoringSafeArea(.all)
-                                        .disabled(true) // Deshabilita controles para que el tap pase
-                                } else {
-                                    AsyncImage(url: adUrl) { image in
-                                        image.resizable().aspectRatio(contentMode: .fit)
-                                    } placeholder: {
-                                        ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        socketObj.resetIdleTimer()
                                     }
-                                    .edgesIgnoringSafeArea(.all)
+                                    .transition(.opacity)
+                                    .zIndex(2)
                                 }
                             }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                socketObj.resetIdleTimer()
-                            }
-                            .transition(.opacity)
-                            .zIndex(2)
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
