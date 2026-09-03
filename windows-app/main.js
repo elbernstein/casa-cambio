@@ -62,8 +62,8 @@ function createWindow() {
         alwaysOnTop: true,
         skipTaskbar: false,
         resizable: false,
-        transparent: process.platform === 'darwin',
-        frame: process.platform !== 'darwin',
+        transparent: true,
+        frame: false,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false

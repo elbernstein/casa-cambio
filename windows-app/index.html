@@ -634,7 +634,7 @@
 
     <script>
         const { ipcRenderer } = require('electron');
-        const axios = require('axios');
+        
 
         const API_URL = "https://api.cambioseurodolar.com";
         let storeId = null; 
@@ -763,8 +763,9 @@
         // Cargar datos actuales desde el servidor
         async function loadStoreData() {
             try {
-                const res = await axios.get(`${API_URL}/api/stores`);
-                const store = res.data.find(s => s._id === storeId);
+                const res = await fetch(`${API_URL}/api/stores`);
+                const stores = await res.json();
+                const store = stores.find(s => s._id === storeId);
                 if (store) {
                     currentStore = {
                         ...currentStore,
@@ -807,9 +808,10 @@
             const to = currentStore.monedaRecibe.code;
             document.getElementById('labelTasaStatus').innerText = "Cargando...";
             try {
-                const res = await axios.get(`${API_URL}/api/rates/${storeId}?from=${from}&to=${to}`);
-                if (res.data.success && res.data.rate !== null) {
-                    currentRate = res.data.rate;
+                const res = await fetch(`${API_URL}/api/rates/${storeId}?from=${from}&to=${to}`);
+                const data = await res.json();
+                if (data.success && data.rate !== null) {
+                    currentRate = data.rate;
                     inputTasa.value = currentRate;
                     document.getElementById('labelTasaStatus').innerText = "";
                 } else {
@@ -834,10 +836,14 @@
             rateDebounceTimer = setTimeout(async () => {
                 if (currentRate > 0) {
                     try {
-                        await axios.put(`${API_URL}/api/rates/${storeId}`, {
-                            fromCurrency: currentStore.monedaEntrega.code,
-                            toCurrency: currentStore.monedaRecibe.code,
-                            rate: currentRate
+                        await fetch(`${API_URL}/api/rates/${storeId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fromCurrency: currentStore.monedaEntrega.code,
+                                toCurrency: currentStore.monedaRecibe.code,
+                                rate: currentRate
+                            })
                         });
                         syncIcon.classList.remove('active');
                         document.getElementById('labelTasaStatus').innerText = "Guardada";
@@ -878,11 +884,15 @@
             await fetchCurrentRate();
 
             try {
-                await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
-                    montoEntrega: "0",
-                    montoRecibe: "0",
-                    monedaEntrega: currentStore.monedaEntrega,
-                    monedaRecibe: currentStore.monedaRecibe
+                await fetch(`${API_URL}/api/stores/${storeId}/amounts`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        montoEntrega: "0",
+                        montoRecibe: "0",
+                        monedaEntrega: currentStore.monedaEntrega,
+                        monedaRecibe: currentStore.monedaRecibe
+                    })
                 });
                 showToast(`Moneda cambiada a ${currencyObj.code}`);
             } catch (err) {
@@ -896,18 +906,33 @@
             const syncIcon = document.getElementById(type === 'entrega' ? 'syncEntrega' : 'syncRecibe');
             if (syncIcon) syncIcon.classList.add('active');
 
+            const strongCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD'];
+
             if (type === 'entrega' && currentRate > 0) {
-                // Auto calculate 'recibe'
                 const rawEntrega = inputEntrega.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
                 const numEntrega = parseFloat(rawEntrega) || 0;
                 
                 if (numEntrega > 0) {
-                    // Truncar a 2 decimales para evitar números muy largos
-                    let calc = numEntrega * currentRate;
-                    // Format calculation: If no decimals needed, show whole number, else show max 2 decimals
+                    const entregaIsWeak = !strongCurrencies.includes(currentStore.monedaEntrega.code);
+                    const recibeIsStrong = strongCurrencies.includes(currentStore.monedaRecibe.code);
+                    
+                    let calc = (entregaIsWeak && recibeIsStrong) ? (numEntrega / currentRate) : (numEntrega * currentRate);
                     inputRecibe.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
                 } else {
                     inputRecibe.value = "0";
+                }
+            } else if (type === 'recibe' && currentRate > 0) {
+                const rawRecibe = inputRecibe.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+                const numRecibe = parseFloat(rawRecibe) || 0;
+                
+                if (numRecibe > 0) {
+                    const entregaIsWeak = !strongCurrencies.includes(currentStore.monedaEntrega.code);
+                    const recibeIsStrong = strongCurrencies.includes(currentStore.monedaRecibe.code);
+                    
+                    let calc = (entregaIsWeak && recibeIsStrong) ? (numRecibe * currentRate) : (numRecibe / currentRate);
+                    inputEntrega.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
+                } else {
+                    inputEntrega.value = "0";
                 }
             }
 
@@ -927,7 +952,11 @@
                 };
 
                 try {
-                    await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, payload);
+                    await fetch(`${API_URL}/api/stores/${storeId}/amounts`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
                     document.getElementById('syncText').innerText = "✓ Sincronizado en iPad";
                     setTimeout(() => {
                         document.getElementById('syncText').innerText = "Tipea para actualizar";
@@ -953,11 +982,15 @@
             await fetchCurrentRate();
 
             try {
-                await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
-                    montoEntrega: "0",
-                    montoRecibe: "0",
-                    monedaEntrega: currentStore.monedaEntrega,
-                    monedaRecibe: currentStore.monedaRecibe
+                await fetch(`${API_URL}/api/stores/${storeId}/amounts`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        montoEntrega: "0",
+                        montoRecibe: "0",
+                        monedaEntrega: currentStore.monedaEntrega,
+                        monedaRecibe: currentStore.monedaRecibe
+                    })
                 });
                 showToast("Divisas invertidas");
             } catch (err) {
@@ -998,8 +1031,9 @@
             btnUpload.innerText = "⏳ Subiendo a pantalla...";
 
             try {
-                await axios.post(`${API_URL}/api/ads/${storeId}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
+                await fetch(`${API_URL}/api/ads/${storeId}`, {
+                    method: 'POST',
+                    body: formData
                 });
                 showToast("¡Publicidad subida con éxito!");
                 fileInput.value = "";
@@ -1017,8 +1051,9 @@
         async function loadPlaylist() {
             const container = document.getElementById('playlistContainer');
             try {
-                const res = await axios.get(`${API_URL}/api/ads/${storeId}`);
-                const list = res.data.playlist || [];
+                const res = await fetch(`${API_URL}/api/ads/${storeId}`);
+                const data = await res.json();
+                const list = data.playlist || [];
                 if (list.length === 0) {
                     container.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 8px;">No hay anuncios activos</div>';
                     return;
@@ -1040,7 +1075,7 @@
 
         async function deleteAd(adId) {
             try {
-                await axios.delete(`${API_URL}/api/ads/${storeId}/${adId}`);
+                await fetch(`${API_URL}/api/ads/${storeId}/${adId}`, { method: 'DELETE' });
                 showToast("Anuncio eliminado");
                 loadPlaylist();
             } catch (err) {
