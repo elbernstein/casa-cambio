@@ -39,27 +39,34 @@ namespace AppWindows
                 var payload = new { email, password };
                 var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
 
-                var response = await _client.PostAsync($"{ApiUrl}/api/auth/login", content);
+                var response = await _client.PostAsync($"{ApiUrl}/api/login", content);
                 var responseString = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var data = JObject.Parse(responseString);
-                    string token = data["token"]?.ToString();
-                    string storeId = data["user"]?["storeId"]?.ToString();
+                    try 
+                    {
+                        var data = JObject.Parse(responseString);
+                        string token = data["token"]?.ToString();
+                        string storeId = data["user"]?["storeId"]?.ToString();
 
-                    if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(storeId))
-                    {
-                        SaveConfig(token, storeId);
-                        
-                        // Abrir ventana principal
-                        MainWindow mainWindow = new MainWindow();
-                        mainWindow.Show();
-                        this.Close();
+                        if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(storeId))
+                        {
+                            SaveConfig(token, storeId);
+                            
+                            // Abrir ventana principal
+                            MainWindow mainWindow = new MainWindow();
+                            mainWindow.Show();
+                            this.Close();
+                        }
+                        else
+                        {
+                            ShowError("El usuario no tiene una tienda asignada.");
+                        }
                     }
-                    else
+                    catch
                     {
-                        ShowError("El usuario no tiene una tienda asignada.");
+                        ShowError("Error del servidor: Respuesta inválida.");
                     }
                 }
                 else
