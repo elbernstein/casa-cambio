@@ -12,7 +12,7 @@
             <TextBlock Text="CASA DE CAMBIO" FontSize="20" FontWeight="Bold" Foreground="#60a5fa" HorizontalAlignment="Center" Margin="0,0,0,10"/>
             <TextBlock Text="Ingresa tus credenciales para conectar el módulo de Emisor." Foreground="#94a3b8" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,30" FontSize="13"/>
             
-            <TextBlock Text="Correo Electrónico" Foreground="#94a3b8" Margin="0,0,0,5" FontSize="12"/>
+            <TextBlock Text="Usuario Emisor" Foreground="#94a3b8" Margin="0,0,0,5" FontSize="12"/>
             <TextBox x:Name="TxtEmail" Height="40" Background="#0f172a" Foreground="White" BorderBrush="#334155" Padding="10" Margin="0,0,0,15" />
             
             <TextBlock Text="Contraseña" Foreground="#94a3b8" Margin="0,0,0,5" FontSize="12"/>

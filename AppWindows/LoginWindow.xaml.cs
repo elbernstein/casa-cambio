@@ -21,12 +21,12 @@ namespace AppWindows
 
         private async void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
-            string email = TxtEmail.Text.Trim();
+            string username = TxtEmail.Text.Trim();
             string password = TxtPassword.Password.Trim();
 
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                ShowError("Por favor, ingresa correo y contraseña.");
+                MessageBox.Show("Por favor, ingresa usuario y contraseña.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -36,7 +36,7 @@ namespace AppWindows
 
             try
             {
-                var payload = new { email, password };
+                var payload = new { username, password };
                 var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
 
                 var response = await _client.PostAsync($"{ApiUrl}/api/login", content);
@@ -87,6 +87,7 @@ namespace AppWindows
 
         private void ShowError(string message)
         {
+            MessageBox.Show(message, "Error de Inicio de Sesión", MessageBoxButton.OK, MessageBoxImage.Error);
             LblError.Text = message;
             LblError.Visibility = Visibility.Visible;
         }
