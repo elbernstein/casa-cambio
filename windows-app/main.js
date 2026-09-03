@@ -1,17 +1,39 @@
 const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, clipboard, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const axios = require('axios');
+
+const logPath = path.join(os.homedir(), 'Desktop', 'debug_casa_cambio.txt');
+function log(msg) {
+    try { fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`); } catch(e){}
+}
+log("--- APP STARTING ---");
 
 // Catch any uncaught errors and show them in a popup
 process.on('uncaughtException', (error) => {
+    log("FATAL ERROR: " + error.toString());
     dialog.showErrorBox('Error Fatal', error.toString());
 });
 
-let Store = require('electron-store');
-if (Store.default) {
-    Store = Store.default;
+let Store;
+try {
+    log("Loading electron-store...");
+    Store = require('electron-store');
+    if (Store.default) Store = Store.default;
+    log("electron-store loaded successfully.");
+} catch(e) {
+    log("Error loading electron-store: " + e.message);
 }
-const store = new Store();
+
+log("Initializing store...");
+let store;
+try {
+    store = new Store();
+    log("Store initialized.");
+} catch(e) {
+    log("Error initializing store: " + e.message);
+}
 
 // Disable hardware acceleration to fix transparent window issues on Windows
 app.disableHardwareAcceleration();
@@ -29,6 +51,7 @@ app.setLoginItemSettings({
 });
 
 function createWindow() {
+    log("Creating window...");
     mainWindow = new BrowserWindow({
         width: 350,
         height: 400,
@@ -45,11 +68,13 @@ function createWindow() {
     });
 
     if (currentStoreId) {
+        log("Store ID found, loading index.html...");
         // Si ya está logueado, cargar app principal con tamaño de botón
         mainWindow.setSize(70, 70);
         mainWindow.loadFile('index.html');
         registerShortcuts();
     } else {
+        log("No store ID, loading login.html...");
         // Cargar login
         mainWindow.loadFile('login.html');
     }
@@ -95,7 +120,9 @@ function registerShortcuts() {
 }
 
 app.whenReady().then(() => {
+    log("App is ready! Calling createWindow...");
     createWindow();
+    log("createWindow finished.");
     
     // IPC listener para redimensionar la ventana cuando se abre el menú
     ipcMain.on('resize-window', (event, { width, height }) => {
