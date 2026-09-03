@@ -1,9 +1,17 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, clipboard } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, clipboard, dialog } = require('electron');
 const path = require('path');
 const axios = require('axios');
 
+// Catch any uncaught errors and show them in a popup
+process.on('uncaughtException', (error) => {
+    dialog.showErrorBox('Error Fatal', error.toString());
+});
+
 const Store = require('electron-store');
 const store = new Store();
+
+// Disable hardware acceleration to fix transparent window issues on Windows
+app.disableHardwareAcceleration();
 
 // const storeId = "6a975d0648d3ed28b3dbd255"; // REMOVED HARDCODED
 const API_URL = "https://api.cambioseurodolar.com";
@@ -28,7 +36,7 @@ function createWindow() {
         transparent: true,
         hasShadow: false,
         alwaysOnTop: true,
-        skipTaskbar: true,
+        skipTaskbar: currentStoreId ? true : false, // SHOW in taskbar if not logged in
         resizable: false,
         webPreferences: {
             nodeIntegration: true,
@@ -99,6 +107,7 @@ app.whenReady().then(() => {
         store.set('storeId', storeId);
         store.set('token', token);
         
+        mainWindow.setSkipTaskbar(true); // Ocultar de la barra de tareas
         mainWindow.setSize(70, 70); // Volver al tamaño del botón
         mainWindow.loadFile('index.html');
         registerShortcuts();
@@ -113,6 +122,8 @@ app.whenReady().then(() => {
         store.delete('storeId');
         store.delete('token');
         globalShortcut.unregisterAll();
+        
+        mainWindow.setSkipTaskbar(false); // Mostrar en la barra de tareas
         mainWindow.setSize(350, 400);
         mainWindow.loadFile('login.html');
     });
