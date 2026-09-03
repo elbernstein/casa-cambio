@@ -1,7 +1,6 @@
 const { app, BrowserWindow, globalShortcut, ipcMain, clipboard, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const axios = require('axios');
 
 // ============================================================
 // SIMPLE JSON CONFIG (no electron-store dependency)
@@ -63,6 +62,8 @@ function createWindow() {
         alwaysOnTop: true,
         skipTaskbar: false,
         resizable: false,
+        transparent: process.platform === 'darwin',
+        frame: process.platform !== 'darwin',
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -89,8 +90,10 @@ function registerShortcuts() {
         const cleanText = text.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
         if (cleanText && !isNaN(cleanText)) {
             try {
-                await axios.put(`${API_URL}/api/stores/${currentStoreId}/amounts`, {
-                    montoEntrega: cleanText
+                await fetch(`${API_URL}/api/stores/${currentStoreId}/amounts`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ montoEntrega: cleanText })
                 });
                 mainWindow.webContents.send('notification', `Entrega: ${cleanText}`);
             } catch (error) {
@@ -104,8 +107,10 @@ function registerShortcuts() {
         const cleanText = text.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
         if (cleanText && !isNaN(cleanText)) {
             try {
-                await axios.put(`${API_URL}/api/stores/${currentStoreId}/amounts`, {
-                    montoRecibe: cleanText
+                await fetch(`${API_URL}/api/stores/${currentStoreId}/amounts`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ montoRecibe: cleanText })
                 });
                 mainWindow.webContents.send('notification', `Recibe: ${cleanText}`);
             } catch (error) {

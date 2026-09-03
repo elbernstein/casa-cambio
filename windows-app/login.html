@@ -121,7 +121,6 @@
 
     <script>
         const { ipcRenderer } = require('electron');
-        const axios = require('axios');
         const API_URL = "https://api.cambioseurodolar.com"; // Asegurar que sea el mismo del main.js
         
         // Ajustar tamaño para la ventana de login
@@ -138,8 +137,22 @@
             errorMsg.textContent = 'Verificando...';
             
             try {
-                const response = await axios.post(`${API_URL}/api/login`, { username, password });
-                const { token, role, storeId } = response.data;
+                const response = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        errorMsg.textContent = 'Credenciales inválidas.';
+                        return;
+                    }
+                    throw new Error('Error status ' + response.status);
+                }
+
+                const data = await response.json();
+                const { token, role, storeId } = data;
                 
                 if (role !== 'emisor') {
                     errorMsg.textContent = 'Solo los emisores pueden usar esta app.';
@@ -150,12 +163,8 @@
                 ipcRenderer.send('login-success', { token, storeId });
                 
             } catch (error) {
-                if (error.response && error.response.status === 401) {
-                    errorMsg.textContent = 'Credenciales inválidas.';
-                } else {
-                    errorMsg.textContent = 'Error de conexión. Intente de nuevo.';
-                    console.error("Error login:", error);
-                }
+                errorMsg.textContent = 'Error de conexión. Intente de nuevo.';
+                console.error("Error login:", error);
             }
         });
     </script>
