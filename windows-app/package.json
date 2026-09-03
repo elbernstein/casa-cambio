@@ -15,8 +15,8 @@
   "license": "ISC",
   "description": "Widget de Casa Cambio",
   "build": {
-    "appId": "com.casacambio.emisor",
-    "productName": "Casa Cambio Emisor",
+    "appId": "com.casacambio.emisor2",
+    "productName": "Emisor Casa Cambio",
     "win": {
       "target": "nsis"
     }

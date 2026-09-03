@@ -7,7 +7,10 @@ process.on('uncaughtException', (error) => {
     dialog.showErrorBox('Error Fatal', error.toString());
 });
 
-const Store = require('electron-store');
+let Store = require('electron-store');
+if (Store.default) {
+    Store = Store.default;
+}
 const store = new Store();
 
 // Disable hardware acceleration to fix transparent window issues on Windows
@@ -31,10 +34,7 @@ function createWindow() {
         height: 400,
         x: 50, // Initial position
         y: 50,
-        type: 'toolbar', // Ensures it acts like a toolbar
-        frame: false,
-        transparent: true,
-        hasShadow: false,
+        // REMOVED frame, transparent, type to debug invisibility
         alwaysOnTop: true,
         skipTaskbar: currentStoreId ? true : false, // SHOW in taskbar if not logged in
         resizable: false,
