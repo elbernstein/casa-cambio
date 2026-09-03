@@ -31,12 +31,13 @@ jobs:
 
     - name: Upload Logs on Failure
       uses: actions/upload-artifact@v4
+      if: failure()
       with:
         name: debug-logs
         path: windows-app/build_log.txt
 
-    - name: Upload Portable EXE
+    - name: Upload Installer EXE
       uses: actions/upload-artifact@v4
       with:
         name: EmisorCasaCambio-Windows
-        path: windows-app/dist/*.exe
+        path: windows-app/dist/EmisorCasaCambio-Setup.exe

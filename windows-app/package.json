@@ -17,10 +17,13 @@
     "appId": "com.casacambio.emisor3",
     "productName": "Emisor CasaCambio",
     "win": {
-      "target": "portable"
+      "target": "nsis"
     },
-    "portable": {
-      "artifactName": "EmisorCasaCambio.exe"
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "EmisorCasaCambio-Setup.exe"
     }
   },
   "devDependencies": {
