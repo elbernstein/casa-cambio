@@ -89,16 +89,8 @@ function registerShortcuts() {
         const text = clipboard.readText().trim();
         const cleanText = text.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
         if (cleanText && !isNaN(cleanText)) {
-            try {
-                await fetch(`${API_URL}/api/stores/${currentStoreId}/amounts`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ montoEntrega: cleanText })
-                });
-                mainWindow.webContents.send('notification', `Entrega: ${cleanText}`);
-            } catch (error) {
-                console.error("Error updating amount:", error);
-            }
+            mainWindow.webContents.send('shortcut-triggered', { type: 'entrega', value: cleanText });
+            mainWindow.webContents.send('notification', `Entrega: ${cleanText}`);
         }
     });
 
@@ -106,16 +98,8 @@ function registerShortcuts() {
         const text = clipboard.readText().trim();
         const cleanText = text.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
         if (cleanText && !isNaN(cleanText)) {
-            try {
-                await fetch(`${API_URL}/api/stores/${currentStoreId}/amounts`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ montoRecibe: cleanText })
-                });
-                mainWindow.webContents.send('notification', `Recibe: ${cleanText}`);
-            } catch (error) {
-                console.error("Error updating amount:", error);
-            }
+            mainWindow.webContents.send('shortcut-triggered', { type: 'recibe', value: cleanText });
+            mainWindow.webContents.send('notification', `Recibe: ${cleanText}`);
         }
     });
 }

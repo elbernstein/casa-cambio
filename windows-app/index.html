@@ -1085,7 +1085,17 @@
         // Atajo global (notificación)
         ipcRenderer.on('notification', (event, msg) => {
             showToast(msg);
-            loadStoreData();
+        });
+
+        // Atajo global (cálculo matemático)
+        ipcRenderer.on('shortcut-triggered', (event, data) => {
+            if (data.type === 'entrega') {
+                inputEntrega.value = data.value;
+                onAmountType('entrega', true);
+            } else if (data.type === 'recibe') {
+                inputRecibe.value = data.value;
+                onAmountType('recibe', true);
+            }
         });
 
         // Carga inicial
