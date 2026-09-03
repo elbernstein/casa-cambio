@@ -243,7 +243,7 @@ struct ContentView: View {
                                     ZStack {
                                         Color.white
                                         if adType == "video" {
-                                            VideoPlayer(player: AVPlayer(url: adUrl))
+                                            AutoPlayingVideo(url: adUrl)
                                                 .disabled(true) // Deshabilita controles para que el tap pase
                                         } else {
                                             AsyncImage(url: adUrl) { phase in
@@ -306,5 +306,38 @@ struct ContentView: View {
         }
         
         return formatter.string(from: NSNumber(value: doubleValue)) ?? amountString
+    }
+}
+
+// Vista auxiliar para reproducir videos automáticamente y en bucle
+struct AutoPlayingVideo: View {
+    let url: URL
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        Group {
+            if let player = player {
+                VideoPlayer(player: player)
+                    .onAppear {
+                        player.play()
+                        NotificationCenter.default.addObserver(
+                            forName: .AVPlayerItemDidPlayToEndTime,
+                            object: player.currentItem,
+                            queue: .main
+                        ) { _ in
+                            player.seek(to: .zero)
+                            player.play()
+                        }
+                    }
+                    .onDisappear {
+                        player.pause()
+                    }
+            } else {
+                ProgressView()
+            }
+        }
+        .onAppear {
+            self.player = AVPlayer(url: url)
+        }
     }
 }
