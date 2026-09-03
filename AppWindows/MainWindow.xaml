@@ -18,9 +18,17 @@
         <Grid x:Name="MenuOpciones" Visibility="Collapsed">
             <Border Background="#CC222222" CornerRadius="10" Padding="10" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Text="Enviar Monto" Foreground="White" Margin="0,0,0,5" />
-                    <TextBox x:Name="TxtMonto" Width="100" Margin="0,0,0,10" />
-                    <Button Content="Enviar a Pantalla" Click="BtnEnviar_Click" Background="#42b883" Foreground="White" Padding="5"/>
+                    <TextBlock Text="Casa Cambio" Foreground="White" Margin="0,0,0,5" HorizontalAlignment="Center" FontWeight="Bold"/>
+                    <TextBlock Text="Atajos Activos:" Foreground="#94a3b8" Margin="0,0,0,2" FontSize="11" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Ctrl+Shift+1 (Entrega)" Foreground="#94a3b8" Margin="0,0,0,2" FontSize="10" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Ctrl+Shift+2 (Recibe)" Foreground="#94a3b8" Margin="0,0,0,10" FontSize="10" HorizontalAlignment="Center"/>
+                    <Button Content="Cerrar Sesión" Click="BtnLogout_Click" Background="#ef4444" Foreground="White" Padding="5" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                 </StackPanel>
             </Border>
         </Grid>
