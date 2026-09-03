@@ -22,19 +22,11 @@ jobs:
       run: npm install
       working-directory: ./windows-app
 
-    - name: Build Electron App (Portable)
-      run: npx electron-builder --win --x64 > build_log.txt 2>&1
+    - name: Build Electron App (Installer)
+      run: npx electron-builder --win --x64
       working-directory: ./windows-app
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      continue-on-error: true
-
-    - name: Upload Logs on Failure
-      uses: actions/upload-artifact@v4
-      if: failure()
-      with:
-        name: debug-logs
-        path: windows-app/build_log.txt
 
     - name: Upload Installer EXE
       uses: actions/upload-artifact@v4
