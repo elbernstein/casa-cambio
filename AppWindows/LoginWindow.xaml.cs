@@ -48,7 +48,7 @@ namespace AppWindows
                     {
                         var data = JObject.Parse(responseString);
                         string token = data["token"]?.ToString();
-                        string storeId = data["user"]?["storeId"]?.ToString();
+                        string storeId = data["storeId"]?.ToString();
 
                         if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(storeId))
                         {
