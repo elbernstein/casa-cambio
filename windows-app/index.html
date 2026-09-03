@@ -117,6 +117,29 @@
             align-items: center;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
         .tabs-container {
             display: flex;
             background: rgba(0, 0, 0, 0.4);
@@ -491,6 +514,11 @@
     <!-- Panel de Control Principal -->
     <div class="panel" id="actionPanel">
         
+        <div class="header-actions">
+            <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Panel de Control</span>
+            <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+        </div>
+
         <!-- Pestañas -->
         <div class="tabs-container">
             <button class="tab-btn active" id="tabMontosBtn" onclick="switchTab('montos')">
@@ -528,6 +556,18 @@
                 </div>
             </div>
 
+            <!-- Tasa de Cambio -->
+            <div class="amount-box">
+                <div class="amount-label">
+                    <span>Tasa de cambio</span>
+                    <span id="labelTasaStatus" style="color: var(--text-muted); font-size: 10px;"></span>
+                </div>
+                <div class="amount-input-wrapper">
+                    <input type="text" id="inputTasa" class="amount-input" style="font-size: 16px; padding: 8px 14px;" placeholder="0.00" oninput="onTasaType()">
+                    <span class="sync-icon" id="syncTasa">✓</span>
+                </div>
+            </div>
+
             <!-- Input: Usted Entrega -->
             <div class="amount-box">
                 <div class="amount-label">
@@ -550,6 +590,12 @@
                     <input type="text" id="inputRecibe" class="amount-input" placeholder="0" oninput="onAmountType('recibe')">
                     <span class="sync-icon" id="syncRecibe">✓</span>
                 </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: -4px;">
+                <button onclick="clearAmounts()" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;">
+                    <span style="font-size: 14px;">🗑️</span> Limpiar
+                </button>
             </div>
 
         </div>
@@ -591,7 +637,16 @@
         const axios = require('axios');
 
         const API_URL = "https://api.cambioseurodolar.com";
-        const storeId = "6a975d0648d3ed28b3dbd255";
+        let storeId = null; 
+        
+        // Cargar storeId desde main
+        ipcRenderer.invoke('get-store-id').then(id => {
+            if (id) {
+                storeId = id;
+                loadStoreData();
+                fetchCurrentRate();
+            }
+        });
 
         const CURRENCIES = [
             { code: 'USD', name: 'Dólar Americano (USD)', flagUrl: 'https://flagcdn.com/w160/us.webp' },
@@ -639,11 +694,14 @@
         let currentTab = 'montos';
         let isOpen = false;
         let debounceTimer = null;
+        let rateDebounceTimer = null;
+        let currentRate = 0;
 
         const btn = document.getElementById('innerClick');
         const panel = document.getElementById('actionPanel');
         const inputEntrega = document.getElementById('inputEntrega');
         const inputRecibe = document.getElementById('inputRecibe');
+        const inputTasa = document.getElementById('inputTasa');
         const selectEntrega = document.getElementById('selectEntrega');
         const selectRecibe = document.getElementById('selectRecibe');
         const toastMsg = document.getElementById('toastMsg');
@@ -670,10 +728,14 @@
 
         function resizeToCurrentTab() {
             if (currentTab === 'montos') {
-                ipcRenderer.send('resize-window', { width: 340, height: 460 });
+                ipcRenderer.send('resize-window', { width: 340, height: 530 });
             } else {
-                ipcRenderer.send('resize-window', { width: 340, height: 560 });
+                ipcRenderer.send('resize-window', { width: 340, height: 600 });
             }
+        }
+
+        function logout() {
+            ipcRenderer.send('logout');
         }
 
         function switchTab(tab) {
@@ -738,6 +800,63 @@
             document.getElementById('labelRecibeCode').innerText = currentStore.monedaRecibe.code;
         }
 
+        // Tasas de cambio
+        async function fetchCurrentRate() {
+            if (!storeId) return;
+            const from = currentStore.monedaEntrega.code;
+            const to = currentStore.monedaRecibe.code;
+            document.getElementById('labelTasaStatus').innerText = "Cargando...";
+            try {
+                const res = await axios.get(`${API_URL}/api/rates/${storeId}?from=${from}&to=${to}`);
+                if (res.data.success && res.data.rate !== null) {
+                    currentRate = res.data.rate;
+                    inputTasa.value = currentRate;
+                    document.getElementById('labelTasaStatus').innerText = "";
+                } else {
+                    currentRate = 0;
+                    inputTasa.value = "";
+                    document.getElementById('labelTasaStatus').innerText = "Sin tasa";
+                }
+            } catch (error) {
+                console.error("Error fetching rate:", error);
+                document.getElementById('labelTasaStatus').innerText = "Error";
+            }
+        }
+
+        function onTasaType() {
+            const syncIcon = document.getElementById('syncTasa');
+            syncIcon.classList.add('active');
+            
+            const rawRate = inputTasa.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+            currentRate = parseFloat(rawRate) || 0;
+
+            clearTimeout(rateDebounceTimer);
+            rateDebounceTimer = setTimeout(async () => {
+                if (currentRate > 0) {
+                    try {
+                        await axios.put(`${API_URL}/api/rates/${storeId}`, {
+                            fromCurrency: currentStore.monedaEntrega.code,
+                            toCurrency: currentStore.monedaRecibe.code,
+                            rate: currentRate
+                        });
+                        syncIcon.classList.remove('active');
+                        document.getElementById('labelTasaStatus').innerText = "Guardada";
+                        setTimeout(() => document.getElementById('labelTasaStatus').innerText = "", 1500);
+                        
+                        // Recalcular recibe si hay un monto de entrega
+                        if (inputEntrega.value) {
+                            onAmountType('entrega', true); // TRUE para que mande la actualización al iPad
+                        }
+                    } catch (error) {
+                        console.error("Error saving rate:", error);
+                        document.getElementById('labelTasaStatus').innerText = "Error al guardar";
+                    }
+                } else {
+                    syncIcon.classList.remove('active');
+                }
+            }, 600);
+        }
+
         // Al cambiar de divisa en el select
         async function onCurrencySelectChange(type) {
             const selectedCode = type === 'entrega' ? selectEntrega.value : selectRecibe.value;
@@ -752,10 +871,16 @@
 
             updateCurrencyDisplay();
 
+            // Limpiar montos al cambiar de moneda y cargar nueva tasa
+            inputEntrega.value = "0";
+            inputRecibe.value = "0";
+            
+            await fetchCurrentRate();
+
             try {
                 await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
-                    montoEntrega: inputEntrega.value.trim(),
-                    montoRecibe: inputRecibe.value.trim(),
+                    montoEntrega: "0",
+                    montoRecibe: "0",
                     monedaEntrega: currentStore.monedaEntrega,
                     monedaRecibe: currentStore.monedaRecibe
                 });
@@ -767,22 +892,42 @@
         }
 
         // Actualización en tiempo real al tipear (con debounce de 250ms)
-        function onAmountType(type) {
+        function onAmountType(type, triggerDebounce = true) {
             const syncIcon = document.getElementById(type === 'entrega' ? 'syncEntrega' : 'syncRecibe');
-            syncIcon.classList.add('active');
+            if (syncIcon) syncIcon.classList.add('active');
+
+            if (type === 'entrega' && currentRate > 0) {
+                // Auto calculate 'recibe'
+                const rawEntrega = inputEntrega.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+                const numEntrega = parseFloat(rawEntrega) || 0;
+                
+                if (numEntrega > 0) {
+                    // Truncar a 2 decimales para evitar números muy largos
+                    let calc = numEntrega * currentRate;
+                    // Format calculation: If no decimals needed, show whole number, else show max 2 decimals
+                    inputRecibe.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
+                } else {
+                    inputRecibe.value = "0";
+                }
+            }
+
+            if (!triggerDebounce) return;
 
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(async () => {
                 const montoEntrega = inputEntrega.value.trim();
                 const montoRecibe = inputRecibe.value.trim();
+                
+                // Truncar si el servidor de producción falla con números muy largos
+                const payload = {
+                    montoEntrega: montoEntrega,
+                    montoRecibe: montoRecibe,
+                    monedaEntrega: currentStore.monedaEntrega,
+                    monedaRecibe: currentStore.monedaRecibe
+                };
 
                 try {
-                    await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
-                        montoEntrega,
-                        montoRecibe,
-                        monedaEntrega: currentStore.monedaEntrega,
-                        monedaRecibe: currentStore.monedaRecibe
-                    });
+                    await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, payload);
                     document.getElementById('syncText').innerText = "✓ Sincronizado en iPad";
                     setTimeout(() => {
                         document.getElementById('syncText').innerText = "Tipea para actualizar";
@@ -802,10 +947,15 @@
             currentStore.monedaRecibe = temp;
             updateCurrencyDisplay();
 
+            inputEntrega.value = "0";
+            inputRecibe.value = "0";
+
+            await fetchCurrentRate();
+
             try {
                 await axios.put(`${API_URL}/api/stores/${storeId}/amounts`, {
-                    montoEntrega: inputEntrega.value.trim(),
-                    montoRecibe: inputRecibe.value.trim(),
+                    montoEntrega: "0",
+                    montoRecibe: "0",
                     monedaEntrega: currentStore.monedaEntrega,
                     monedaRecibe: currentStore.monedaRecibe
                 });
@@ -813,6 +963,14 @@
             } catch (err) {
                 showToast("Error al invertir divisas", true);
             }
+        }
+
+        // Limpiar campos
+        async function clearAmounts() {
+            inputEntrega.value = "0";
+            inputRecibe.value = "0";
+            onAmountType('entrega', true);
+            showToast("Campos limpiados");
         }
 
         // Archivos y Publicidad
@@ -898,7 +1056,7 @@
 
         // Carga inicial
         populateCurrencySelects();
-        loadStoreData();
+        // Nota: loadStoreData() y fetchCurrentRate() se llaman una vez que el main envia el storeId
     </script>
 </body>
 </html>

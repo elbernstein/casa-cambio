@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --bg-color: #1a1b26;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none; /* Evita selección de texto en la app */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-app-region: drag; /* Permite mover la ventana */
+        }
+
+        .login-container {
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 300px;
+            text-align: center;
+            -webkit-app-region: no-drag; /* Para que los inputs funcionen */
+            backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        button:hover {
+            background: #4338ca;
+        }
+        
+        #error-msg {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            min-height: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Iniciar Sesión</h2>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="username">Usuario Emisor</label>
+                <input type="text" id="username" required autocomplete="off" spellcheck="false">
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Entrar</button>
+            <div id="error-msg"></div>
+        </form>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const axios = require('axios');
+        const API_URL = "https://api.cambioseurodolar.com"; // Asegurar que sea el mismo del main.js
+        
+        // Ajustar tamaño para la ventana de login
+        ipcRenderer.send('resize-window', { width: 350, height: 400 });
+
+        const form = document.getElementById('login-form');
+        const errorMsg = document.getElementById('error-msg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            errorMsg.textContent = 'Verificando...';
+            
+            try {
+                const response = await axios.post(`${API_URL}/api/login`, { username, password });
+                const { token, role, storeId } = response.data;
+                
+                if (role !== 'emisor') {
+                    errorMsg.textContent = 'Solo los emisores pueden usar esta app.';
+                    return;
+                }
+                
+                // Enviar datos al proceso principal
+                ipcRenderer.send('login-success', { token, storeId });
+                
+            } catch (error) {
+                if (error.response && error.response.status === 401) {
+                    errorMsg.textContent = 'Credenciales inválidas.';
+                } else {
+                    errorMsg.textContent = 'Error de conexión. Intente de nuevo.';
+                    console.error("Error login:", error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

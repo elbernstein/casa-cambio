@@ -10,6 +10,7 @@ const storeRoutes = require('./routes/storeRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adRoutes = require('./routes/adRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const rateRoutes = require('./routes/rateRoutes');
 const socketHandler = require('./sockets/socketHandler');
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/stores', storeRoutes);
 app.use('/api/login', authRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/rates', rateRoutes);
 
 // Servir la aplicación Vue (Admin Panel) en producción
 app.use(express.static(path.join(__dirname, 'admin-panel/dist')));
