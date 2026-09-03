@@ -312,32 +312,27 @@ struct ContentView: View {
 // Vista auxiliar para reproducir videos automáticamente y en bucle
 struct AutoPlayingVideo: View {
     let url: URL
-    @State private var player: AVPlayer?
+    @State private var player = AVPlayer()
 
     var body: some View {
-        Group {
-            if let player = player {
-                VideoPlayer(player: player)
-                    .onAppear {
-                        player.play()
-                        NotificationCenter.default.addObserver(
-                            forName: .AVPlayerItemDidPlayToEndTime,
-                            object: player.currentItem,
-                            queue: .main
-                        ) { _ in
-                            player.seek(to: .zero)
-                            player.play()
-                        }
-                    }
-                    .onDisappear {
-                        player.pause()
-                    }
-            } else {
-                ProgressView()
+        VideoPlayer(player: player)
+            .onAppear {
+                let playerItem = AVPlayerItem(url: url)
+                player.replaceCurrentItem(with: playerItem)
+                player.play()
+                
+                NotificationCenter.default.addObserver(
+                    forName: .AVPlayerItemDidPlayToEndTime,
+                    object: playerItem,
+                    queue: .main
+                ) { _ in
+                    player.seek(to: .zero)
+                    player.play()
+                }
             }
-        }
-        .onAppear {
-            self.player = AVPlayer(url: url)
-        }
+            .onDisappear {
+                player.pause()
+                player.replaceCurrentItem(with: nil)
+            }
     }
 }
