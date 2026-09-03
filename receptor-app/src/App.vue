@@ -74,7 +74,10 @@ onUnmounted(() => {
             <span class="currency">$</span>
             <span class="value">{{ monto }}</span>
           </div>
-          <div class="brand">CASA DE CAMBIO</div>
+          <div class="brand">
+            <img src="/logo.jpg" alt="Casa Cambio" class="brand-logo" />
+            <span>CASA DE CAMBIO</span>
+          </div>
         </div>
       </div>
     </transition>
@@ -192,11 +195,22 @@ body {
 }
 
 .brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
   font-size: 1.2rem;
   letter-spacing: 0.4em;
   color: #475569;
   text-transform: uppercase;
   margin-top: 2rem;
+}
+
+.brand-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 20px rgba(74, 222, 128, 0.2);
 }
 
 /* Pantalla de Publicidad */
