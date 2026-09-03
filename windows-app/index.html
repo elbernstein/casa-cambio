@@ -978,8 +978,7 @@
 
             inputEntrega.value = "0";
             inputRecibe.value = "0";
-
-            await fetchCurrentRate();
+            onAmountType('entrega', false); // Trigger calculation if rate exists
 
             try {
                 await fetch(`${API_URL}/api/stores/${storeId}/amounts`, {
