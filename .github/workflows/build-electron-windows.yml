@@ -16,30 +16,20 @@ jobs:
     - name: Install Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 22
+        node-version: 20
 
     - name: Install Dependencies
-      run: npm install > install_log.txt 2>&1
+      run: npm install
       working-directory: ./windows-app
-      continue-on-error: true
 
-    - name: Build Electron App
-      run: npm run dist > build_log.txt 2>&1
+    - name: Build Electron App (Portable)
+      run: npx electron-builder --win portable
       working-directory: ./windows-app
-      continue-on-error: true
-
-    - name: Upload Logs
-      uses: actions/upload-artifact@v4
-      with:
-        name: debug-logs
-        path: |
-          windows-app/install_log.txt
-          windows-app/build_log.txt
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload Artifact
+    - name: Upload Portable EXE
       uses: actions/upload-artifact@v4
       with:
-        name: CasaCambio-Widget-Windows
-        path: windows-app/dist/*.exe
+        name: EmisorCasaCambio-Windows
+        path: windows-app/dist/EmisorCasaCambio.exe

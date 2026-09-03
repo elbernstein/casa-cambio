@@ -3,3 +3,5 @@ uploads/
 .env
 .DS_Store
 *.log
+windows-app/dist/
+windows-app/node_modules/

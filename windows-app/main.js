@@ -1,65 +1,67 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, clipboard, dialog } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, clipboard, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const axios = require('axios');
 
-const logPath = path.join(os.homedir(), 'Desktop', 'debug_casa_cambio.txt');
-function log(msg) {
-    try { fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`); } catch(e){}
-}
-log("--- APP STARTING ---");
+// ============================================================
+// SIMPLE JSON CONFIG (no electron-store dependency)
+// ============================================================
+const configPath = path.join(app.getPath('userData'), 'config.json');
 
-// Catch any uncaught errors and show them in a popup
-process.on('uncaughtException', (error) => {
-    log("FATAL ERROR: " + error.toString());
-    dialog.showErrorBox('Error Fatal', error.toString());
-});
-
-let Store;
-try {
-    log("Loading electron-store...");
-    Store = require('electron-store');
-    if (Store.default) Store = Store.default;
-    log("electron-store loaded successfully.");
-} catch(e) {
-    log("Error loading electron-store: " + e.message);
+function readConfig() {
+    try {
+        if (fs.existsSync(configPath)) {
+            return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        }
+    } catch (e) { /* ignore */ }
+    return {};
 }
 
-log("Initializing store...");
-let store;
-try {
-    store = new Store();
-    log("Store initialized.");
-} catch(e) {
-    log("Error initializing store: " + e.message);
+function writeConfig(data) {
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(data, null, 2));
+    } catch (e) { /* ignore */ }
 }
 
-// Disable hardware acceleration to fix transparent window issues on Windows
-app.disableHardwareAcceleration();
+function getConfig(key) {
+    const config = readConfig();
+    return config[key] || null;
+}
 
-// const storeId = "6a975d0648d3ed28b3dbd255"; // REMOVED HARDCODED
+function setConfig(key, value) {
+    const config = readConfig();
+    config[key] = value;
+    writeConfig(config);
+}
+
+function deleteConfig(key) {
+    const config = readConfig();
+    delete config[key];
+    writeConfig(config);
+}
+
+// ============================================================
+// APP
+// ============================================================
 const API_URL = "https://api.cambioseurodolar.com";
 
 let mainWindow;
-let currentStoreId = store.get('storeId') || null;
+let currentStoreId = null;
 
-// Enable Autostart
-app.setLoginItemSettings({
-    openAtLogin: true,
-    path: app.getPath('exe')
-});
+// Disable GPU to avoid transparency bugs on Windows
+app.disableHardwareAcceleration();
 
 function createWindow() {
-    log("Creating window...");
+    // Read saved storeId
+    currentStoreId = getConfig('storeId');
+
     mainWindow = new BrowserWindow({
         width: 350,
         height: 400,
-        x: 50, // Initial position
+        x: 50,
         y: 50,
-        // REMOVED frame, transparent, type to debug invisibility
         alwaysOnTop: true,
-        skipTaskbar: currentStoreId ? true : false, // SHOW in taskbar if not logged in
+        skipTaskbar: false,
         resizable: false,
         webPreferences: {
             nodeIntegration: true,
@@ -68,25 +70,20 @@ function createWindow() {
     });
 
     if (currentStoreId) {
-        log("Store ID found, loading index.html...");
-        // Si ya está logueado, cargar app principal con tamaño de botón
         mainWindow.setSize(70, 70);
+        mainWindow.setSkipTaskbar(true);
         mainWindow.loadFile('index.html');
         registerShortcuts();
     } else {
-        log("No store ID, loading login.html...");
-        // Cargar login
         mainWindow.loadFile('login.html');
     }
 }
 
 function registerShortcuts() {
     if (!currentStoreId) return;
-    
-    // Unregister first to avoid duplicates
+
     globalShortcut.unregisterAll();
-    
-    // Ctrl+Shift+1 for "Usted entrega"
+
     globalShortcut.register('CommandOrControl+Shift+1', async () => {
         const text = clipboard.readText().trim();
         const cleanText = text.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
@@ -102,7 +99,6 @@ function registerShortcuts() {
         }
     });
 
-    // Ctrl+Shift+2 for "Usted recibe"
     globalShortcut.register('CommandOrControl+Shift+2', async () => {
         const text = clipboard.readText().trim();
         const cleanText = text.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
@@ -120,37 +116,34 @@ function registerShortcuts() {
 }
 
 app.whenReady().then(() => {
-    log("App is ready! Calling createWindow...");
     createWindow();
-    log("createWindow finished.");
-    
-    // IPC listener para redimensionar la ventana cuando se abre el menú
+
     ipcMain.on('resize-window', (event, { width, height }) => {
         mainWindow.setSize(width, height);
     });
 
     ipcMain.on('login-success', (event, { token, storeId }) => {
         currentStoreId = storeId;
-        store.set('storeId', storeId);
-        store.set('token', token);
-        
-        mainWindow.setSkipTaskbar(true); // Ocultar de la barra de tareas
-        mainWindow.setSize(70, 70); // Volver al tamaño del botón
+        setConfig('storeId', storeId);
+        setConfig('token', token);
+
+        mainWindow.setSkipTaskbar(true);
+        mainWindow.setSize(70, 70);
         mainWindow.loadFile('index.html');
         registerShortcuts();
     });
-    
+
     ipcMain.handle('get-store-id', () => {
         return currentStoreId;
     });
 
     ipcMain.on('logout', () => {
         currentStoreId = null;
-        store.delete('storeId');
-        store.delete('token');
+        deleteConfig('storeId');
+        deleteConfig('token');
         globalShortcut.unregisterAll();
-        
-        mainWindow.setSkipTaskbar(false); // Mostrar en la barra de tareas
+
+        mainWindow.setSkipTaskbar(false);
         mainWindow.setSize(350, 400);
         mainWindow.loadFile('login.html');
     });

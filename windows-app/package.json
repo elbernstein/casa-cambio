@@ -1,32 +1,33 @@
 {
-  "name": "windows-app",
-  "version": "1.0.0",
+  "name": "emisor-casa-cambio",
+  "version": "1.1.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
-  "keywords": ["exchange", "widget"],
   "author": {
     "name": "Casa Cambio",
     "email": "info@casacambio.com"
   },
   "license": "ISC",
-  "description": "Widget de Casa Cambio",
+  "description": "Emisor de Casa de Cambio",
   "build": {
-    "appId": "com.casacambio.emisor2",
-    "productName": "Emisor Casa Cambio",
+    "appId": "com.casacambio.emisor3",
+    "productName": "Emisor CasaCambio",
     "win": {
-      "target": "nsis"
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "EmisorCasaCambio.exe"
     }
   },
   "devDependencies": {
-    "electron": "^41.7.1",
+    "electron": "^33.4.11",
     "electron-builder": "^26.15.3"
   },
   "dependencies": {
-    "axios": "^1.20.0",
-    "electron-store": "^8.2.0"
+    "axios": "^1.20.0"
   }
 }
