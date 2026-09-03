@@ -23,7 +23,7 @@ jobs:
       working-directory: ./windows-app
 
     - name: Build Electron App (Installer)
-      run: npx electron-builder --win --x64
+      run: npm run dist
       working-directory: ./windows-app
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
