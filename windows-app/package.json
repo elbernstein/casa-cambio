@@ -15,8 +15,7 @@
     "appId": "com.casacambio.widget",
     "productName": "Casa Cambio Widget",
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": "nsis"
     }
   },
   "devDependencies": {
