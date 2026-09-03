@@ -7,10 +7,13 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["exchange", "widget"],
+  "author": {
+    "name": "Casa Cambio",
+    "email": "info@casacambio.com"
+  },
   "license": "ISC",
-  "description": "",
+  "description": "Widget de Casa Cambio",
   "build": {
     "appId": "com.casacambio.widget",
     "productName": "Casa Cambio Widget",
