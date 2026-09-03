@@ -309,30 +309,41 @@ struct ContentView: View {
     }
 }
 
-// Vista auxiliar para reproducir videos automáticamente y en bucle
+// Vista auxiliar para reproducir videos automáticamente y en bucle usando UIKit
 struct AutoPlayingVideo: View {
     let url: URL
-    @State private var player = AVPlayer()
 
     var body: some View {
-        VideoPlayer(player: player)
-            .onAppear {
-                let playerItem = AVPlayerItem(url: url)
-                player.replaceCurrentItem(with: playerItem)
-                player.play()
-                
-                NotificationCenter.default.addObserver(
-                    forName: .AVPlayerItemDidPlayToEndTime,
-                    object: playerItem,
-                    queue: .main
-                ) { _ in
-                    player.seek(to: .zero)
-                    player.play()
-                }
-            }
-            .onDisappear {
-                player.pause()
-                player.replaceCurrentItem(with: nil)
-            }
+        VideoPlayerView(url: url)
+    }
+}
+
+struct VideoPlayerView: UIViewControllerRepresentable {
+    let url: URL
+    
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.showsPlaybackControls = false
+        controller.videoGravity = .resizeAspect
+        
+        let player = AVPlayer(url: url)
+        controller.player = player
+        
+        // Looping
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem,
+            queue: .main
+        ) { _ in
+            player.seek(to: .zero)
+            player.play()
+        }
+        
+        player.play()
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        // No update needed for basic playback
     }
 }
