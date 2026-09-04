@@ -1,81 +1,106 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { io } from 'socket.io-client';
 
-const pdvID = 'pdv-1'; // En un entorno real, esto se configuraría vía URL o localstorage
+const pdvID = 'pdv-1';
 const socket = ref(null);
 const monto = ref('0.00');
-const adData = ref({ url: null, type: null });
-const videoPlayer = ref(null);
 
-watch(isIdle, (newVal) => {
-  if (!newVal && videoPlayer.value) {
-    videoPlayer.value.pause();
-  }
+// Playlist y rotación
+const playlist = ref([]);
+const currentAdIndex = ref(0);
+let adRotationTimer = null;
+
+const adData = computed(() => {
+  if (playlist.value.length === 0) return { url: null, type: null };
+  const currentAd = playlist.value[currentAdIndex.value];
+  if (!currentAd || !currentAd.url) return { url: null, type: null };
+  
+  const filename = currentAd.url.split('/').pop();
+  return {
+    url: `https://api.cambioseurodolar.com/uploads/${filename}`,
+    type: currentAd.type
+  };
 });
 
-const handleVisibilityChange = () => {
-  if (document.hidden && videoPlayer.value) {
-    videoPlayer.value.pause();
-  } else if (!document.hidden && isIdle.value && videoPlayer.value) {
-    videoPlayer.value.play().catch(e => console.log('Autoplay prevent', e));
-  }
+// Asesino de videos global para garantizar que se calle el audio
+const forceKillVideos = () => {
+  const videos = document.querySelectorAll('video');
+  videos.forEach(v => {
+    try {
+      v.pause();
+      v.volume = 0;
+      v.removeAttribute('src');
+      v.load();
+      v.remove();
+    } catch (e) { console.error(e); }
+  });
 };
 
 // Estado de inactividad
 const isIdle = ref(true);
 let idleTimer = null;
-const IDLE_TIMEOUT = 10000; // 10 segundos de inactividad para mostrar publicidad
+const IDLE_TIMEOUT = 10000;
+
+const startAdRotation = () => {
+  if (adRotationTimer) clearInterval(adRotationTimer);
+  adRotationTimer = setInterval(() => {
+    if (isIdle.value && playlist.value.length > 0) {
+      currentAdIndex.value = (currentAdIndex.value + 1) % playlist.value.length;
+    }
+  }, 10000); // Rota cada 10s
+};
 
 const resetIdleTimer = () => {
   isIdle.value = false;
-  
-  // Asesinato instantáneo del video para evitar audio fantasma
-  if (videoPlayer.value) {
-    videoPlayer.value.pause();
-    videoPlayer.value.volume = 0;
-    videoPlayer.value.removeAttribute('src');
-    videoPlayer.value.load();
-  }
+  forceKillVideos(); // Mata el video al instante
   
   if (idleTimer) clearTimeout(idleTimer);
   
-  // Solo volver a inactivo si hay publicidad
-  if (adData.value.url) {
+  if (playlist.value.length > 0) {
     idleTimer = setTimeout(() => {
       isIdle.value = true;
+      startAdRotation();
     }, IDLE_TIMEOUT);
   }
 };
 
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    forceKillVideos();
+  } else if (isIdle.value && playlist.value.length > 0) {
+    // Al volver, si estaba inactivo, forzamos un refresco simulando reset
+    const temp = isIdle.value;
+    isIdle.value = false;
+    setTimeout(() => isIdle.value = temp, 50);
+  }
+};
+
 onMounted(() => {
-  socket.value = io('http://localhost:3000');
+  socket.value = io('http://localhost:3000'); // NOTA: Esto debería apuntar a tu servidor remoto en prod
 
   socket.value.on('connect', () => {
-    console.log('🟢 Conectado al servidor central');
     socket.value.emit('join_room', pdvID);
   });
 
   socket.value.on('estado_inicial', (data) => {
-    if (data.monto) monto.value = data.monto;
-    if (data.adUrl) {
-      adData.value = { url: data.adUrl, type: data.adType };
-      // Si hay publicidad y acaba de cargar, mostrarla si no hubo interacción reciente
-      isIdle.value = true; 
+    if (data.montoEntrega) monto.value = data.montoEntrega;
+    if (data.playlist && data.playlist.length > 0) {
+      playlist.value = data.playlist;
+      isIdle.value = true;
+      startAdRotation();
     }
   });
 
-  socket.value.on('nuevo_monto', (nuevoMonto) => {
-    monto.value = nuevoMonto;
+  socket.value.on('nuevo_monto', (data) => {
+    if (data.montoEntrega) monto.value = data.montoEntrega;
     resetIdleTimer();
   });
 
-  socket.value.on('nueva_publicidad', (data) => {
-    adData.value = { url: data.url, type: data.type };
-    if (isIdle.value) {
-      // Forzar renderizado si ya estábamos inactivos
-      isIdle.value = false;
-      setTimeout(() => isIdle.value = true, 100);
+  socket.value.on('playlist_updated', (data) => {
+    if (Array.isArray(data) && data.length > 0) {
+      playlist.value = data[0];
+      currentAdIndex.value = 0;
     }
   });
 
@@ -85,6 +110,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (socket.value) socket.value.disconnect();
   if (idleTimer) clearTimeout(idleTimer);
+  if (adRotationTimer) clearInterval(adRotationTimer);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
