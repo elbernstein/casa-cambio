@@ -245,6 +245,7 @@ struct ContentView: View {
                                         if adType == "video" {
                                             AutoPlayingVideo(url: adUrl)
                                                 .disabled(true) // Deshabilita controles para que el tap pase
+                                                .id(adUrlString) // Fuerza recrear el video si cambia la URL
                                         } else {
                                             AsyncImage(url: adUrl) { phase in
                                                 switch phase {
@@ -264,10 +265,12 @@ struct ContentView: View {
                                                     EmptyView()
                                                 }
                                             }
+                                            .id(adUrlString) // Fuerza recrear la imagen
                                         }
                                     }
                                     .contentShape(Rectangle())
                                     .onTapGesture {
+                                        // La notificación de pausa ahora se envía globalmente desde SocketManager.resetIdleTimer()
                                         socketObj.resetIdleTimer()
                                     }
                                     .transition(.opacity)
@@ -321,6 +324,29 @@ struct AutoPlayingVideo: View {
 struct VideoPlayerView: UIViewControllerRepresentable {
     let url: URL
     
+    class Coordinator: NSObject {
+        var player: AVPlayer?
+        var observers: [Any] = []
+        
+        deinit {
+            cleanup()
+        }
+        
+        func cleanup() {
+            player?.pause()
+            player?.replaceCurrentItem(with: nil)
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            observers.removeAll()
+            player = nil
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator()
+    }
+    
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.showsPlaybackControls = false
@@ -328,22 +354,63 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         
         let player = AVPlayer(url: url)
         controller.player = player
+        context.coordinator.player = player
         
         // Looping
-        NotificationCenter.default.addObserver(
+        let obs1 = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: player.currentItem,
             queue: .main
-        ) { _ in
-            player.seek(to: .zero)
+        ) { [weak player] _ in
+            player?.seek(to: .zero)
+            player?.play()
+        }
+        
+        // Manejar envío a segundo plano
+        let obs2 = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak player] _ in
+            player?.pause()
+        }
+        
+        // Manejar regreso a primer plano
+        let obs3 = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak player] _ in
+            player?.play()
+        }
+        
+        // Manejar parada manual
+        let obs4 = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("StopVideoPlayback"),
+            object: nil,
+            queue: .main
+        ) { [weak player] _ in
+            player?.pause()
+            player?.volume = 0
+            player?.replaceCurrentItem(with: nil)
+        }
+        
+        context.coordinator.observers = [obs1, obs2, obs3, obs4]
+        
+        // NO reproducir si la app está en segundo plano (minimizada)
+        if UIApplication.shared.applicationState == .active {
             player.play()
         }
         
-        player.play()
         return controller
     }
     
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        // No update needed for basic playback
+        // No update needed
+    }
+    
+    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Coordinator) {
+        coordinator.cleanup()
+        uiViewController.player = nil
     }
 }

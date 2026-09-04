@@ -29,6 +29,15 @@ const IDLE_TIMEOUT = 10000; // 10 segundos de inactividad para mostrar publicida
 
 const resetIdleTimer = () => {
   isIdle.value = false;
+  
+  // Asesinato instantáneo del video para evitar audio fantasma
+  if (videoPlayer.value) {
+    videoPlayer.value.pause();
+    videoPlayer.value.volume = 0;
+    videoPlayer.value.removeAttribute('src');
+    videoPlayer.value.load();
+  }
+  
   if (idleTimer) clearTimeout(idleTimer);
   
   // Solo volver a inactivo si hay publicidad
@@ -102,7 +111,7 @@ onUnmounted(() => {
 
     <!-- PANTALLA DE PUBLICIDAD (INACTIVIDAD) -->
     <transition name="slide-up">
-      <div v-if="isIdle && adData.url" class="ad-screen">
+      <div v-if="isIdle && adData.url" class="ad-screen" @click="resetIdleTimer">
         <video 
           v-if="adData.type === 'video'" 
           ref="videoPlayer"

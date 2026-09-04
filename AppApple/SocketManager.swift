@@ -147,6 +147,7 @@ class SocketManagerObj: ObservableObject {
     
     func resetIdleTimer() {
         self.isIdle = false
+        NotificationCenter.default.post(name: NSNotification.Name("StopVideoPlayback"), object: nil)
         idleTimer?.invalidate()
         idleTimer = Timer.scheduledTimer(withTimeInterval: self.idleTimeout, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
