@@ -241,10 +241,11 @@ struct ContentView: View {
                                 
                                 if let adUrl = URL(string: adUrlString) {
                                     ZStack {
-                                        Color.white
+                                        Color.black.edgesIgnoringSafeArea(.all)
+                                        
                                         if adType == "video" {
                                             AutoPlayingVideo(url: adUrl)
-                                                .disabled(true) // Deshabilita controles para que el tap pase
+                                                .disabled(true) // Intenta deshabilitar controles nativos
                                                 .id(adUrlString) // Fuerza recrear el video si cambia la URL
                                         } else {
                                             AsyncImage(url: adUrl) { phase in
@@ -267,11 +268,43 @@ struct ContentView: View {
                                             }
                                             .id(adUrlString) // Fuerza recrear la imagen
                                         }
-                                    }
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        // La notificación de pausa ahora se envía globalmente desde SocketManager.resetIdleTimer()
-                                        socketObj.resetIdleTimer()
+                                        
+                                        // Escudo invisible absoluto: Atrapa los toques para que el reproductor no se los trague
+                                        Color.clear
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                socketObj.resetIdleTimer()
+                                            }
+                                            
+                                        // Botón SALTAR visible en la parte superior derecha
+                                        VStack {
+                                            HStack {
+                                                Spacer()
+                                                Button(action: {
+                                                    socketObj.resetIdleTimer()
+                                                }) {
+                                                    HStack {
+                                                        Text("Saltar")
+                                                            .fontWeight(.bold)
+                                                        Image(systemName: "arrow.right.circle.fill")
+                                                    }
+                                                    .font(.system(size: 24))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 30)
+                                                    .padding(.vertical, 15)
+                                                    .background(Color.black.opacity(0.6))
+                                                    .cornerRadius(40)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 40)
+                                                            .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                                                    )
+                                                }
+                                                .padding(.top, 40)
+                                                .padding(.trailing, 40)
+                                            }
+                                            Spacer()
+                                        }
+                                        .zIndex(30)
                                     }
                                     .transition(.opacity)
                                     .zIndex(2)
