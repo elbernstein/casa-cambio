@@ -130,7 +130,7 @@ struct ContentView: View {
                     // Zona inferior (Debajo de la barra superior)
                     ZStack {
                         // Contenido Central
-                        VStack(alignment: .leading, spacing: 40) {
+                        VStack(alignment: .leading, spacing: 0) {
                             Text("OPERACIÓN ACTUAL")
                                 .font(.system(size: 40, weight: .medium))
                                 .foregroundColor(textGray)

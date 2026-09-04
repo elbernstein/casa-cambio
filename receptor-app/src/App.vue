@@ -1,11 +1,26 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { io } from 'socket.io-client';
 
 const pdvID = 'pdv-1'; // En un entorno real, esto se configuraría vía URL o localstorage
 const socket = ref(null);
 const monto = ref('0.00');
 const adData = ref({ url: null, type: null });
+const videoPlayer = ref(null);
+
+watch(isIdle, (newVal) => {
+  if (!newVal && videoPlayer.value) {
+    videoPlayer.value.pause();
+  }
+});
+
+const handleVisibilityChange = () => {
+  if (document.hidden && videoPlayer.value) {
+    videoPlayer.value.pause();
+  } else if (!document.hidden && isIdle.value && videoPlayer.value) {
+    videoPlayer.value.play().catch(e => console.log('Autoplay prevent', e));
+  }
+};
 
 // Estado de inactividad
 const isIdle = ref(true);
@@ -54,11 +69,14 @@ onMounted(() => {
       setTimeout(() => isIdle.value = true, 100);
     }
   });
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onUnmounted(() => {
   if (socket.value) socket.value.disconnect();
   if (idleTimer) clearTimeout(idleTimer);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
 
@@ -87,6 +105,7 @@ onUnmounted(() => {
       <div v-if="isIdle && adData.url" class="ad-screen">
         <video 
           v-if="adData.type === 'video'" 
+          ref="videoPlayer"
           :src="adData.url" 
           autoplay 
           loop 
