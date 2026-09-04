@@ -137,14 +137,14 @@ onUnmounted(() => {
 
     <!-- PANTALLA DE PUBLICIDAD (INACTIVIDAD) -->
     <transition name="slide-up">
-      <div v-if="isIdle && adData.url" class="ad-screen" @click="resetIdleTimer">
+      <div v-if="isIdle && adData.url" class="ad-screen">
         <video 
           v-if="adData.type === 'video'" 
-          ref="videoPlayer"
           :src="adData.url" 
           autoplay 
           loop 
-          muted 
+          muted
+          playsinline
           class="ad-media"
         ></video>
         <img 
@@ -153,6 +153,14 @@ onUnmounted(() => {
           class="ad-media" 
           alt="Publicidad" 
         />
+        
+        <!-- Capa invisible protectora: Atrapa todos los clics para que el video no los bloquee -->
+        <div class="ad-click-overlay" @click.stop="resetIdleTimer"></div>
+        
+        <!-- Botón visible de Saltar -->
+        <button class="skip-btn" @click.stop="resetIdleTimer">
+          Saltar ➔
+        </button>
       </div>
     </transition>
 
@@ -267,7 +275,6 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 20px rgba(74, 222, 128, 0.2);
 }
 
-/* Pantalla de Publicidad */
 .ad-screen {
   position: absolute;
   top: 0;
@@ -278,6 +285,43 @@ body {
   background-color: #000;
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.ad-click-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 25;
+  cursor: pointer;
+}
+
+.skip-btn {
+  position: absolute;
+  top: 3rem;
+  right: 3rem;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 1rem 2.5rem;
+  border-radius: 50px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+  transition: all 0.2s ease;
+}
+
+.skip-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
   justify-content: center;
 }
 
