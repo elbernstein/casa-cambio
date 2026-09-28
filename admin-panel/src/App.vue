@@ -331,6 +331,8 @@ const swapCurrencies = (store) => {
   const temp = store.monedaEntrega;
   store.monedaEntrega = store.monedaRecibe;
   store.monedaRecibe = temp;
+  // Recalcular los montos con las nuevas monedas invertidas (manteniendo el monto de entrega)
+  handleAmountInput(store, true);
   emitAmounts(store); // Auto-save after swap
 };
 
