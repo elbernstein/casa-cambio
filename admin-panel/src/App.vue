@@ -343,24 +343,42 @@ const handleAmountInput = (store, isEntrega) => {
   if (rate > 0) {
     const codeEnt = store.monedaEntrega?.code || 'USD';
     const codeRec = store.monedaRecibe?.code || 'COP';
-    const strongCurrencies = ['USD', 'EUR', 'GBP', 'CHF'];
-    const entregaIsStrong = strongCurrencies.includes(codeEnt);
-    const recibeIsStrong = strongCurrencies.includes(codeRec);
+    
+    // Jerarquía de monedas para saber cuál es más fuerte y decidir si multiplicar o dividir
+    const currencyHierarchy = {
+      'GBP': 100,
+      'EUR': 90,
+      'CHF': 80,
+      'USD': 70,
+      'CAD': 60,
+      'BRL': 50,
+      'MXN': 40,
+      'ARS': 30,
+      'COP': 20,
+      'CLP': 10,
+      'VES': 1
+    };
+    
+    const strengthEnt = currencyHierarchy[codeEnt] || 0;
+    const strengthRec = currencyHierarchy[codeRec] || 0;
+    
+    const entregaIsStrong = strengthEnt > strengthRec;
+    const recibeIsStrong = strengthRec > strengthEnt;
     
     if (isEntrega) {
       const num = parseFloat(store.montoEntrega) || 0;
-      if (entregaIsStrong && !recibeIsStrong) {
+      if (entregaIsStrong) {
         store.montoRecibe = (num * rate).toFixed(2);
-      } else if (!entregaIsStrong && recibeIsStrong) {
+      } else if (recibeIsStrong) {
         store.montoRecibe = (num / rate).toFixed(2);
       } else {
         store.montoRecibe = (num * rate).toFixed(2);
       }
     } else {
       const num = parseFloat(store.montoRecibe) || 0;
-      if (entregaIsStrong && !recibeIsStrong) {
+      if (entregaIsStrong) {
         store.montoEntrega = (num / rate).toFixed(2);
-      } else if (!entregaIsStrong && recibeIsStrong) {
+      } else if (recibeIsStrong) {
         store.montoEntrega = (num * rate).toFixed(2);
       } else {
         store.montoEntrega = (num / rate).toFixed(2);
