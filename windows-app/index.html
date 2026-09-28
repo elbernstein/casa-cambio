@@ -906,17 +906,39 @@
             const syncIcon = document.getElementById(type === 'entrega' ? 'syncEntrega' : 'syncRecibe');
             if (syncIcon) syncIcon.classList.add('active');
 
-            const strongCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD'];
+            const currencyHierarchy = {
+                'GBP': 100,
+                'EUR': 90,
+                'CHF': 80,
+                'USD': 70,
+                'CAD': 60,
+                'AUD': 55,
+                'BRL': 50,
+                'MXN': 40,
+                'ARS': 30,
+                'COP': 20,
+                'CLP': 10,
+                'VES': 1
+            };
+
+            const strengthEnt = currencyHierarchy[currentStore.monedaEntrega.code] || 0;
+            const strengthRec = currencyHierarchy[currentStore.monedaRecibe.code] || 0;
+            const entregaIsStrong = strengthEnt > strengthRec;
+            const recibeIsStrong = strengthRec > strengthEnt;
 
             if (type === 'entrega' && currentRate > 0) {
                 const rawEntrega = inputEntrega.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
                 const numEntrega = parseFloat(rawEntrega) || 0;
                 
                 if (numEntrega > 0) {
-                    const entregaIsWeak = !strongCurrencies.includes(currentStore.monedaEntrega.code);
-                    const recibeIsStrong = strongCurrencies.includes(currentStore.monedaRecibe.code);
-                    
-                    let calc = (entregaIsWeak && recibeIsStrong) ? (numEntrega / currentRate) : (numEntrega * currentRate);
+                    let calc = 0;
+                    if (entregaIsStrong) {
+                        calc = numEntrega * currentRate;
+                    } else if (recibeIsStrong) {
+                        calc = numEntrega / currentRate;
+                    } else {
+                        calc = numEntrega * currentRate;
+                    }
                     inputRecibe.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
                 } else {
                     inputRecibe.value = "0";
@@ -926,10 +948,14 @@
                 const numRecibe = parseFloat(rawRecibe) || 0;
                 
                 if (numRecibe > 0) {
-                    const entregaIsWeak = !strongCurrencies.includes(currentStore.monedaEntrega.code);
-                    const recibeIsStrong = strongCurrencies.includes(currentStore.monedaRecibe.code);
-                    
-                    let calc = (entregaIsWeak && recibeIsStrong) ? (numRecibe * currentRate) : (numRecibe / currentRate);
+                    let calc = 0;
+                    if (entregaIsStrong) {
+                        calc = numRecibe / currentRate;
+                    } else if (recibeIsStrong) {
+                        calc = numRecibe * currentRate;
+                    } else {
+                        calc = numRecibe / currentRate;
+                    }
                     inputEntrega.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
                 } else {
                     inputEntrega.value = "0";
