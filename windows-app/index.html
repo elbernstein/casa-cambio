@@ -676,7 +676,8 @@
 
         // Poblar selects de divisas
         function populateCurrencySelects() {
-            const optionsHtml = CURRENCIES.map(c => `<option value="${c.code}">${c.code} - ${c.name}</option>`).join('');
+            const activeCurrencies = CURRENCIES.filter(c => c.isActive !== false);
+            const optionsHtml = activeCurrencies.map(c => `<option value="${c.code}">${c.code} - ${c.name}</option>`).join('');
             selectEntrega.innerHTML = optionsHtml;
             selectRecibe.innerHTML = optionsHtml;
         }
