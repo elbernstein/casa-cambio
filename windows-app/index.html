@@ -557,14 +557,30 @@
             </div>
 
             <!-- Tasa de Cambio -->
-            <div class="amount-box">
-                <div class="amount-label">
-                    <span>Tasa de cambio</span>
-                    <span id="labelTasaStatus" style="color: var(--text-muted); font-size: 10px;"></span>
+            <div class="amount-box" style="padding-bottom: 6px;">
+                <div style="display: flex; gap: 8px;">
+                    <div style="flex:1;">
+                        <div class="amount-label" style="margin-bottom: 4px;">
+                            <span style="font-size: 10px;">Compra</span>
+                        </div>
+                        <input type="text" id="inputTasaCompra" class="amount-input" style="font-size: 14px; padding: 6px 10px;" placeholder="0.00" oninput="onTasaType()">
+                    </div>
+                    <div style="flex:1;">
+                        <div class="amount-label" style="margin-bottom: 4px;">
+                            <span style="font-size: 10px;">Venta</span>
+                            <span id="labelTasaStatus" style="color: var(--text-muted); font-size: 9px;"></span>
+                        </div>
+                        <input type="text" id="inputTasaVenta" class="amount-input" style="font-size: 14px; padding: 6px 10px;" placeholder="0.00" oninput="onTasaType()">
+                    </div>
                 </div>
-                <div class="amount-input-wrapper">
-                    <input type="text" id="inputTasa" class="amount-input" style="font-size: 16px; padding: 8px 14px;" placeholder="0.00" oninput="onTasaType()">
-                    <span class="sync-icon" id="syncTasa">✓</span>
+                <div style="display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 6px; background: rgba(0,0,0,0.3); padding: 5px 8px; border-radius: 8px;">
+                    <label style="color: var(--text-secondary); display: flex; align-items: center; gap: 4px; cursor:pointer; font-size: 11px;">
+                        <input type="radio" name="operationToggle" value="COMPRA" checked onchange="setOperationType(this.value)" style="accent-color: #22c55e;"> Compra
+                    </label>
+                    <label style="color: var(--text-secondary); display: flex; align-items: center; gap: 4px; cursor:pointer; font-size: 11px;">
+                        <input type="radio" name="operationToggle" value="VENTA" onchange="setOperationType(this.value)" style="accent-color: #ef4444;"> Venta
+                    </label>
+                    <span class="sync-icon" id="syncTasa" style="position: static; margin-left: auto;">✓</span>
                 </div>
             </div>
 
@@ -669,7 +685,7 @@
         const panel = document.getElementById('actionPanel');
         const inputEntrega = document.getElementById('inputEntrega');
         const inputRecibe = document.getElementById('inputRecibe');
-        const inputTasa = document.getElementById('inputTasa');
+        // inputTasa removed - now using inputTasaCompra and inputTasaVenta
         const selectEntrega = document.getElementById('selectEntrega');
         const selectRecibe = document.getElementById('selectRecibe');
         const toastMsg = document.getElementById('toastMsg');
@@ -697,7 +713,7 @@
 
         function resizeToCurrentTab() {
             if (currentTab === 'montos') {
-                ipcRenderer.send('resize-window', { width: 340, height: 530 });
+                ipcRenderer.send('resize-window', { width: 340, height: 620 });
             } else {
                 ipcRenderer.send('resize-window', { width: 340, height: 600 });
             }
