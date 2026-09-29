@@ -125,7 +125,9 @@ onUnmounted(() => {
     <transition name="fade">
       <div v-if="!isIdle || !adData.url" class="monto-screen">
         <div class="monto-box">
-          <div class="operation-badge" :class="operationType.toLowerCase()">{{ operationType }}</div>
+          <div class="operation-badge" :class="operationType.toLowerCase()">
+            {{ operationType === 'COMPRA' ? 'COMPRA / BUY' : 'VENTA / SELL' }}
+          </div>
           <h2>TOTAL A PAGAR</h2>
           <div class="monto-display">
             <span class="currency">$</span>
