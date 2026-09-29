@@ -50,6 +50,7 @@ exports.getStores = async (req, res) => {
                 montoRecibe: state.montoRecibe || "0",
                 monedaEntrega: state.monedaEntrega || null,
                 monedaRecibe: state.monedaRecibe || null,
+                operationType: state.operationType || 'COMPRA',
                 adUrl: state.adUrl || null,
                 adType: state.adType || null
             };
@@ -99,7 +100,7 @@ exports.updateStoreCredentials = async (req, res) => {
 
 exports.updateStoreAmounts = async (req, res) => {
     try {
-        const { montoEntrega, montoRecibe, monedaEntrega, monedaRecibe } = req.body;
+        const { montoEntrega, montoRecibe, monedaEntrega, monedaRecibe, operationType } = req.body;
         const storeId = req.params.id;
         
         console.log(`\n[REST API] Recibido PUT /api/stores/${storeId}/amounts`);
@@ -109,6 +110,7 @@ exports.updateStoreAmounts = async (req, res) => {
         let updateData = { montoEntrega: montoEntrega?.toString(), montoRecibe: montoRecibe?.toString() };
         if (monedaEntrega) updateData.monedaEntrega = monedaEntrega;
         if (monedaRecibe) updateData.monedaRecibe = monedaRecibe;
+        if (operationType) updateData.operationType = operationType;
 
         // Actualizar en base de datos
         const updatedState = await TransactionState.findOneAndUpdate(
@@ -126,7 +128,8 @@ exports.updateStoreAmounts = async (req, res) => {
                 montoEntrega: updatedState.montoEntrega, 
                 montoRecibe: updatedState.montoRecibe,
                 monedaEntrega: updatedState.monedaEntrega,
-                monedaRecibe: updatedState.monedaRecibe
+                monedaRecibe: updatedState.monedaRecibe,
+                operationType: updatedState.operationType
             });
             console.log(`[SOCKET EMIT] Evento disparado exitosamente.`);
         } else {

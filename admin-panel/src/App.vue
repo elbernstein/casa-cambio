@@ -5,57 +5,51 @@ import axios from 'axios';
 // URL Dinámica (local vs producción)
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://api.cambioseurodolar.com';
 
-const CURRENCIES = [
-  { code: 'USD', name: 'DÓLAR AMERICANO (USD)', flagUrl: 'https://flagcdn.com/w160/us.webp' },
-  { code: 'EUR', name: 'EURO (EUR)', flagUrl: 'https://flagcdn.com/w160/eu.webp' },
-  { code: 'COP', name: 'Peso Colombiano (COP)', flagUrl: 'https://flagcdn.com/w160/co.webp' },
-  { code: 'CAD', name: 'Dólar Canadiense (CAD)', flagUrl: 'https://flagcdn.com/w160/ca.webp' },
-  { code: 'MXN', name: 'Peso Mexicano (MXN)', flagUrl: 'https://flagcdn.com/w160/mx.webp' },
-  { code: 'GBP', name: 'Libra Esterlina (GBP)', flagUrl: 'https://flagcdn.com/w160/gb.webp' },
-  { code: 'BSD', name: 'Dólar Bahamas (BSD)', flagUrl: 'https://flagcdn.com/w160/bs.webp' },
-  { code: 'NZD', name: 'Dólar Nueva Zelanda (NZD)', flagUrl: 'https://flagcdn.com/w160/nz.webp' },
-  { code: 'CLP', name: 'Peso Chileno (CLP)', flagUrl: 'https://flagcdn.com/w160/cl.webp' },
-  { code: 'JPY', name: 'Yen Japonés (JPY)', flagUrl: 'https://flagcdn.com/w160/jp.webp' },
-  { code: 'PEN', name: 'Nuevo Sol Perú (PEN)', flagUrl: 'https://flagcdn.com/w160/pe.webp' },
-  { code: 'AUD', name: 'Dólar Australiano (AUD)', flagUrl: 'https://flagcdn.com/w160/au.webp' },
-  { code: 'BRL', name: 'Real Brasileño (BRL)', flagUrl: 'https://flagcdn.com/w160/br.webp' },
-  { code: 'CHF', name: 'Franco Suizo (CHF)', flagUrl: 'https://flagcdn.com/w160/ch.webp' },
-  { code: 'ARS', name: 'Peso Argentino (ARS)', flagUrl: 'https://flagcdn.com/w160/ar.webp' },
-  { code: 'GTQ', name: 'Quetzal Guatemala (GTQ)', flagUrl: 'https://flagcdn.com/w160/gt.webp' },
-  { code: 'NIO', name: 'Cordoba Nicaragua (NIO)', flagUrl: 'https://flagcdn.com/w160/ni.webp' },
-  { code: 'DOP', name: 'Peso Dominicano (DOP)', flagUrl: 'https://flagcdn.com/w160/do.webp' },
-  { code: 'CNY', name: 'Yuan Chino (CNY)', flagUrl: 'https://flagcdn.com/w160/cn.webp' },
-  { code: 'AWG', name: 'Florin Aruba (AWG)', flagUrl: 'https://flagcdn.com/w160/aw.webp' },
-  { code: 'DKK', name: 'Corona Danesa (DKK)', flagUrl: 'https://flagcdn.com/w160/dk.webp' },
-  { code: 'ANG', name: 'Florin Caribeño (ANG)', flagUrl: 'https://flagcdn.com/w160/cw.webp' },
-  { code: 'BOB', name: 'Peso Bolivia (BOB)', flagUrl: 'https://flagcdn.com/w160/bo.webp' },
-  { code: 'TRY', name: 'Lira Turca (TRY)', flagUrl: 'https://flagcdn.com/w160/tr.webp' },
-  { code: 'SEK', name: 'Corona Sueca (SEK)', flagUrl: 'https://flagcdn.com/w160/se.webp' },
-  { code: 'THB', name: 'Baht Tailandia (THB)', flagUrl: 'https://flagcdn.com/w160/th.webp' },
-  { code: 'CRC', name: 'Colón Costa Rica (CRC)', flagUrl: 'https://flagcdn.com/w160/cr.webp' },
-  { code: 'KRW', name: 'Won Corea del Sur (KRW)', flagUrl: 'https://flagcdn.com/w160/kr.webp' },
-  { code: 'UYU', name: 'Peso Uruguay (UYU)', flagUrl: 'https://flagcdn.com/w160/uy.webp' },
-  { code: 'AED', name: 'Dirham Emiratos (AED)', flagUrl: 'https://flagcdn.com/w160/ae.webp' },
-  { code: 'HKD', name: 'Dólar Hong Kong (HKD)', flagUrl: 'https://flagcdn.com/w160/hk.webp' },
-  { code: 'NOK', name: 'Corona Noruega (NOK)', flagUrl: 'https://flagcdn.com/w160/no.webp' },
-  { code: 'HNL', name: 'Lempira Honduras (HNL)', flagUrl: 'https://flagcdn.com/w160/hn.webp' },
-  { code: 'INR', name: 'Rupia India (INR)', flagUrl: 'https://flagcdn.com/w160/in.png' },
-  { code: 'JMD', name: 'Dólar Jamaica (JMD)', flagUrl: 'https://flagcdn.com/w160/jm.png' },
-  { code: 'TTD', name: 'Dólar Trinidad y Tobago (TTD)', flagUrl: 'https://flagcdn.com/w160/tt.png' },
-  { code: 'HUF', name: 'Forinto Hungria (HUF)', flagUrl: 'https://flagcdn.com/w160/hu.png' },
-  { code: 'EGP', name: 'Libra Egipto (EGP)', flagUrl: 'https://flagcdn.com/w160/eg.png' },
-  { code: 'MYR', name: 'Ringgit Malaysia (MYR)', flagUrl: 'https://flagcdn.com/w160/my.png' },
-  { code: 'RUB', name: 'Rublo Rusia (RUB)', flagUrl: 'https://flagcdn.com/w160/ru.png' },
-  { code: 'SRD', name: 'Dólar Surinam (SRD)', flagUrl: 'https://flagcdn.com/w160/sr.png' },
-  { code: 'KYD', name: 'Dólar Isla Caiman (KYD)', flagUrl: 'https://flagcdn.com/w160/ky.png' },
-  { code: 'GYD', name: 'Dólar Guyana (GYD)', flagUrl: 'https://flagcdn.com/w160/gy.png' },
-  { code: 'IDR', name: 'Rupia Indonesia (IDR)', flagUrl: 'https://flagcdn.com/w160/id.png' },
-  { code: 'ILS', name: 'Sequel Israel (ILS)', flagUrl: 'https://flagcdn.com/w160/il.png' },
-  { code: 'MAD', name: 'Dirham Marruecos (MAD)', flagUrl: 'https://flagcdn.com/w160/ma.png' },
-  { code: 'PYG', name: 'Guarani Paraguay (PYG)', flagUrl: 'https://flagcdn.com/w160/py.png' },
-  { code: 'SGD', name: 'Dólar Singapur (SGD)', flagUrl: 'https://flagcdn.com/w160/sg.png' },
-  { code: 'TWD', name: 'Dólar Taiwan (TWD)', flagUrl: 'https://flagcdn.com/w160/tw.png' }
-];
+const CURRENCIES = ref([]);
+const showCurrencyModal = ref(false);
+const newCurrency = ref({ code: '', name: '', flagUrl: '', strength: 0 });
+const addingCurrency = ref(false);
+
+const fetchCurrencies = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/api/currencies`);
+    CURRENCIES.value = res.data.map(c => ({
+      code: c.code,
+      name: c.code, // or some default name
+      flagUrl: c.flagUrl,
+      strength: c.strength,
+      _id: c._id
+    }));
+  } catch (error) {
+    console.error("Error fetching currencies:", error);
+  }
+};
+
+const openCurrencyModal = () => { showCurrencyModal.value = true; };
+const closeCurrencyModal = () => { showCurrencyModal.value = false; };
+const addCurrency = async () => {
+  if (!newCurrency.value.code || !newCurrency.value.flagUrl) return alert("Código y URL de bandera son requeridos");
+  addingCurrency.value = true;
+  try {
+    await axios.post(`${API_URL}/api/currencies`, newCurrency.value);
+    await fetchCurrencies();
+    newCurrency.value = { code: '', name: '', flagUrl: '', strength: 0 };
+  } catch (err) {
+    console.error(err);
+    alert("Error al agregar moneda");
+  }
+  addingCurrency.value = false;
+};
+const deleteCurrency = async (id) => {
+  if (!confirm("¿Seguro que deseas eliminar esta moneda?")) return;
+  try {
+    await axios.delete(`${API_URL}/api/currencies/${id}`);
+    await fetchCurrencies();
+  } catch (err) {
+    console.error(err);
+    alert("Error al eliminar moneda");
+  }
+};
 const stores = ref([]);
 const loading = ref(true);
 const newStoreName = ref('');
@@ -88,8 +82,8 @@ const fetchStores = async () => {
       // First load: setup default currencies if missing
       stores.value = res.data.map(s => ({
         ...s,
-        monedaEntrega: CURRENCIES.find(c => c.code === s.monedaEntrega?.code) || CURRENCIES.find(c => c.code === 'COP'),
-        monedaRecibe: CURRENCIES.find(c => c.code === s.monedaRecibe?.code) || CURRENCIES.find(c => c.code === 'USD')
+        monedaEntrega: CURRENCIES.value.find(c => c.code === s.monedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP'),
+        monedaRecibe: CURRENCIES.value.find(c => c.code === s.monedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD')
       }));
     } else {
       res.data.forEach(serverStore => {
@@ -100,14 +94,14 @@ const fetchStores = async () => {
           if (!activeInputs.value[localStore._id]) {
             localStore.montoEntrega = serverStore.montoEntrega;
             localStore.montoRecibe = serverStore.montoRecibe;
-            localStore.monedaEntrega = CURRENCIES.find(c => c.code === serverStore.monedaEntrega?.code) || CURRENCIES.find(c => c.code === 'COP');
-            localStore.monedaRecibe = CURRENCIES.find(c => c.code === serverStore.monedaRecibe?.code) || CURRENCIES.find(c => c.code === 'USD');
+            localStore.monedaEntrega = CURRENCIES.value.find(c => c.code === serverStore.monedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP');
+            localStore.monedaRecibe = CURRENCIES.value.find(c => c.code === serverStore.monedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD');
           }
         } else {
           stores.value.push({
             ...serverStore,
-            monedaEntrega: CURRENCIES.find(c => c.code === serverStore.monedaEntrega?.code) || CURRENCIES.find(c => c.code === 'COP'),
-            monedaRecibe: CURRENCIES.find(c => c.code === serverStore.monedaRecibe?.code) || CURRENCIES.find(c => c.code === 'USD')
+            monedaEntrega: CURRENCIES.value.find(c => c.code === serverStore.monedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP'),
+            monedaRecibe: CURRENCIES.value.find(c => c.code === serverStore.monedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD')
           });
         }
       });
@@ -160,11 +154,11 @@ const fetchSettings = async () => {
     const res = await axios.get(`${API_URL}/api/settings/${managingStore.value._id}`);
     if (res.data && res.data.settings) {
       storeSettings.value.idleTimeoutSeconds = res.data.settings.idleTimeoutSeconds || 15;
-      storeSettings.value.defaultMonedaEntrega = CURRENCIES.find(c => c.code === res.data.settings.defaultMonedaEntrega?.code) || CURRENCIES.find(c => c.code === 'COP');
-      storeSettings.value.defaultMonedaRecibe = CURRENCIES.find(c => c.code === res.data.settings.defaultMonedaRecibe?.code) || CURRENCIES.find(c => c.code === 'USD');
+      storeSettings.value.defaultMonedaEntrega = CURRENCIES.value.find(c => c.code === res.data.settings.defaultMonedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP');
+      storeSettings.value.defaultMonedaRecibe = CURRENCIES.value.find(c => c.code === res.data.settings.defaultMonedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD');
     } else {
-      storeSettings.value.defaultMonedaEntrega = CURRENCIES.find(c => c.code === 'COP');
-      storeSettings.value.defaultMonedaRecibe = CURRENCIES.find(c => c.code === 'USD');
+      storeSettings.value.defaultMonedaEntrega = CURRENCIES.value.find(c => c.code === 'COP');
+      storeSettings.value.defaultMonedaRecibe = CURRENCIES.value.find(c => c.code === 'USD');
     }
   } catch (error) {
     console.error("Error fetching settings:", error);
@@ -347,22 +341,11 @@ const handleAmountInput = (store, isEntrega) => {
     const codeRec = store.monedaRecibe?.code || 'COP';
     
     // Jerarquía de monedas para saber cuál es más fuerte y decidir si multiplicar o dividir
-    const currencyHierarchy = {
-      'GBP': 100,
-      'EUR': 90,
-      'CHF': 80,
-      'USD': 70,
-      'CAD': 60,
-      'BRL': 50,
-      'MXN': 40,
-      'ARS': 30,
-      'COP': 20,
-      'CLP': 10,
-      'VES': 1
-    };
+    const entC = CURRENCIES.value.find(c => c.code === codeEnt);
+    const recC = CURRENCIES.value.find(c => c.code === codeRec);
     
-    const strengthEnt = currencyHierarchy[codeEnt] || 0;
-    const strengthRec = currencyHierarchy[codeRec] || 0;
+    const strengthEnt = entC ? entC.strength : 0;
+    const strengthRec = recC ? recC.strength : 0;
     
     const entregaIsStrong = strengthEnt > strengthRec;
     const recibeIsStrong = strengthRec > strengthEnt;
@@ -395,7 +378,8 @@ const handleAmountInput = (store, isEntrega) => {
   }, 400); // 400ms delay tras teclear
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchCurrencies();
   fetchStores();
   setInterval(fetchStores, 3000);
 });
@@ -414,6 +398,7 @@ onMounted(() => {
         <input v-model="newStoreName" type="text" placeholder="Ej. Sucursal Centro" @keyup.enter="createStore" />
         <button @click="createStore" :disabled="!newStoreName">Crear Tienda</button>
       </div>
+      <button @click="openCurrencyModal" class="btn-manage" style="margin-top:1rem;">💰 Gestionar Monedas</button>
     </div>
 
     <!-- Modal de Credenciales -->
@@ -431,6 +416,41 @@ onMounted(() => {
         </div>
         
         <button @click="closeCredentialsModal" class="btn-close">He copiado las credenciales</button>
+      </div>
+    </div>
+    <!-- Modal de Monedas -->
+    <div v-if="showCurrencyModal" class="modal-overlay">
+      <div class="glass-card modal-content manage-modal">
+        <div class="modal-header">
+          <h3>Gestión de Monedas</h3>
+          <button @click="closeCurrencyModal" class="btn-x">×</button>
+        </div>
+        <div class="manage-grid" style="grid-template-columns: 1fr;">
+          <div class="manage-section">
+            <h4>➕ Agregar Moneda</h4>
+            <div class="form-group flex-row">
+              <input v-model="newCurrency.code" type="text" placeholder="Código (ej. USD)" class="input-dark" style="margin-top:0;" />
+              <input v-model="newCurrency.flagUrl" type="text" placeholder="URL Bandera" class="input-dark" style="margin-top:0;" />
+              <input v-model="newCurrency.strength" type="number" placeholder="Fuerza (0-100)" class="input-dark" style="margin-top:0; width: 100px;" />
+              <button @click="addCurrency" class="btn-save" :disabled="addingCurrency">Agregar</button>
+            </div>
+          </div>
+          <div class="manage-section">
+            <h4>📋 Monedas Disponibles</h4>
+            <div class="playlist-container" style="max-height: 300px;">
+              <div v-for="c in CURRENCIES" :key="c._id" class="playlist-item">
+                <div class="ad-preview">
+                  <img :src="c.flagUrl" alt="flag" />
+                  <div class="ad-info">
+                    <p style="margin:0; color: #fff; font-weight: 600;">{{ c.code }}</p>
+                    <small style="color: var(--text-secondary)">Fuerza: {{ c.strength }}</small>
+                  </div>
+                </div>
+                <button @click="deleteCurrency(c._id)" class="btn-delete-ad">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

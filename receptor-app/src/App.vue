@@ -5,6 +5,7 @@ import { io } from 'socket.io-client';
 const pdvID = 'pdv-1';
 const socket = ref(null);
 const monto = ref('0.00');
+const operationType = ref('COMPRA');
 
 // Playlist y rotación
 const playlist = ref([]);
@@ -85,6 +86,7 @@ onMounted(() => {
 
   socket.value.on('estado_inicial', (data) => {
     if (data.montoEntrega) monto.value = data.montoEntrega;
+    if (data.operationType) operationType.value = data.operationType;
     if (data.playlist && data.playlist.length > 0) {
       playlist.value = data.playlist;
       isIdle.value = true;
@@ -94,6 +96,7 @@ onMounted(() => {
 
   socket.value.on('nuevo_monto', (data) => {
     if (data.montoEntrega) monto.value = data.montoEntrega;
+    if (data.operationType) operationType.value = data.operationType;
     resetIdleTimer();
   });
 
@@ -122,6 +125,7 @@ onUnmounted(() => {
     <transition name="fade">
       <div v-if="!isIdle || !adData.url" class="monto-screen">
         <div class="monto-box">
+          <div class="operation-badge" :class="operationType.toLowerCase()">{{ operationType }}</div>
           <h2>TOTAL A PAGAR</h2>
           <div class="monto-display">
             <span class="currency">$</span>
@@ -224,6 +228,26 @@ body {
   100% { transform: translateY(0px); }
 }
 
+.operation-badge {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+.operation-badge.compra {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+.operation-badge.venta {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
 .monto-box h2 {
   font-size: 2rem;
   letter-spacing: 0.2em;
@@ -322,8 +346,7 @@ body {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(0.95);
 }
-  justify-content: center;
-}
+
 
 .ad-media {
   width: 100%;

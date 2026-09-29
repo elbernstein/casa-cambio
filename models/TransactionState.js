@@ -12,6 +12,7 @@ const transactionSchema = new mongoose.Schema({
         code: { type: String, default: "USD" },
         flagUrl: { type: String, default: "https://flagcdn.com/w160/us.webp" }
     },
+    operationType: { type: String, enum: ['COMPRA', 'VENTA'], default: 'COMPRA' },
     lastUpdated: { type: Date, default: Date.now }
 });
 

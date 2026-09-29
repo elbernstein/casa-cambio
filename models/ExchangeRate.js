@@ -4,7 +4,8 @@ const exchangeRateSchema = new mongoose.Schema({
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true },
     fromCurrency: { type: String, required: true },
     toCurrency: { type: String, required: true },
-    rate: { type: Number, required: true },
+    rateCompra: { type: Number, default: 0 },
+    rateVenta: { type: Number, default: 0 },
     updatedAt: { type: Date, default: Date.now }
 });
 

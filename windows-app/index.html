@@ -648,41 +648,7 @@
             }
         });
 
-        const CURRENCIES = [
-            { code: 'USD', name: 'Dólar Americano (USD)', flagUrl: 'https://flagcdn.com/w160/us.webp' },
-            { code: 'EUR', name: 'Euro (EUR)', flagUrl: 'https://flagcdn.com/w160/eu.webp' },
-            { code: 'COP', name: 'Peso Colombiano (COP)', flagUrl: 'https://flagcdn.com/w160/co.webp' },
-            { code: 'CAD', name: 'Dólar Canadiense (CAD)', flagUrl: 'https://flagcdn.com/w160/ca.webp' },
-            { code: 'MXN', name: 'Peso Mexicano (MXN)', flagUrl: 'https://flagcdn.com/w160/mx.webp' },
-            { code: 'GBP', name: 'Libra Esterlina (GBP)', flagUrl: 'https://flagcdn.com/w160/gb.webp' },
-            { code: 'BSD', name: 'Dólar Bahamas (BSD)', flagUrl: 'https://flagcdn.com/w160/bs.webp' },
-            { code: 'NZD', name: 'Dólar Nueva Zelanda (NZD)', flagUrl: 'https://flagcdn.com/w160/nz.webp' },
-            { code: 'CLP', name: 'Peso Chileno (CLP)', flagUrl: 'https://flagcdn.com/w160/cl.webp' },
-            { code: 'JPY', name: 'Yen Japonés (JPY)', flagUrl: 'https://flagcdn.com/w160/jp.webp' },
-            { code: 'PEN', name: 'Nuevo Sol Perú (PEN)', flagUrl: 'https://flagcdn.com/w160/pe.webp' },
-            { code: 'AUD', name: 'Dólar Australiano (AUD)', flagUrl: 'https://flagcdn.com/w160/au.webp' },
-            { code: 'BRL', name: 'Real Brasileño (BRL)', flagUrl: 'https://flagcdn.com/w160/br.webp' },
-            { code: 'CHF', name: 'Franco Suizo (CHF)', flagUrl: 'https://flagcdn.com/w160/ch.webp' },
-            { code: 'ARS', name: 'Peso Argentino (ARS)', flagUrl: 'https://flagcdn.com/w160/ar.webp' },
-            { code: 'GTQ', name: 'Quetzal Guatemala (GTQ)', flagUrl: 'https://flagcdn.com/w160/gt.webp' },
-            { code: 'NIO', name: 'Córdoba Nicaragua (NIO)', flagUrl: 'https://flagcdn.com/w160/ni.webp' },
-            { code: 'DOP', name: 'Peso Dominicano (DOP)', flagUrl: 'https://flagcdn.com/w160/do.webp' },
-            { code: 'CNY', name: 'Yuan Chino (CNY)', flagUrl: 'https://flagcdn.com/w160/cn.webp' },
-            { code: 'AWG', name: 'Florín Aruba (AWG)', flagUrl: 'https://flagcdn.com/w160/aw.webp' },
-            { code: 'DKK', name: 'Corona Danesa (DKK)', flagUrl: 'https://flagcdn.com/w160/dk.webp' },
-            { code: 'ANG', name: 'Florín Caribeño (ANG)', flagUrl: 'https://flagcdn.com/w160/cw.webp' },
-            { code: 'BOB', name: 'Peso Bolivia (BOB)', flagUrl: 'https://flagcdn.com/w160/bo.webp' },
-            { code: 'TRY', name: 'Lira Turca (TRY)', flagUrl: 'https://flagcdn.com/w160/tr.webp' },
-            { code: 'SEK', name: 'Corona Sueca (SEK)', flagUrl: 'https://flagcdn.com/w160/se.webp' },
-            { code: 'THB', name: 'Baht Tailandia (THB)', flagUrl: 'https://flagcdn.com/w160/th.webp' },
-            { code: 'CRC', name: 'Colón Costa Rica (CRC)', flagUrl: 'https://flagcdn.com/w160/cr.webp' },
-            { code: 'KRW', name: 'Won Corea del Sur (KRW)', flagUrl: 'https://flagcdn.com/w160/kr.webp' },
-            { code: 'UYU', name: 'Peso Uruguay (UYU)', flagUrl: 'https://flagcdn.com/w160/uy.webp' },
-            { code: 'AED', name: 'Dirham Emiratos (AED)', flagUrl: 'https://flagcdn.com/w160/ae.webp' },
-            { code: 'HKD', name: 'Dólar Hong Kong (HKD)', flagUrl: 'https://flagcdn.com/w160/hk.webp' },
-            { code: 'NOK', name: 'Corona Noruega (NOK)', flagUrl: 'https://flagcdn.com/w160/no.webp' },
-            { code: 'HNL', name: 'Lempira Honduras (HNL)', flagUrl: 'https://flagcdn.com/w160/hn.webp' }
-        ];
+        let CURRENCIES = [];
 
         let currentStore = {
             montoEntrega: "0",
@@ -695,7 +661,9 @@
         let isOpen = false;
         let debounceTimer = null;
         let rateDebounceTimer = null;
-        let currentRate = 0;
+        let currentRateCompra = 0;
+        let currentRateVenta = 0;
+        let operationType = 'COMPRA';
 
         const btn = document.getElementById('innerClick');
         const panel = document.getElementById('actionPanel');
@@ -761,6 +729,18 @@
         }
 
         // Cargar datos actuales desde el servidor
+        
+        async function fetchCurrencies() {
+            try {
+                const res = await fetch(`${API_URL}/api/currencies`);
+                if (res.ok) {
+                    CURRENCIES = await res.json();
+                }
+            } catch (err) {
+                console.error("Error fetching currencies:", err);
+            }
+        }
+
         async function loadStoreData() {
             try {
                 const res = await fetch(`${API_URL}/api/stores`);
@@ -802,6 +782,11 @@
         }
 
         // Tasas de cambio
+        function setOperationType(type) {
+            operationType = type;
+            onAmountType('entrega', true);
+        }
+
         async function fetchCurrentRate() {
             if (!storeId) return;
             const from = currentStore.monedaEntrega.code;
@@ -810,13 +795,17 @@
             try {
                 const res = await fetch(`${API_URL}/api/rates/${storeId}?from=${from}&to=${to}`);
                 const data = await res.json();
-                if (data.success && data.rate !== null) {
-                    currentRate = data.rate;
-                    inputTasa.value = currentRate;
+                if (data.success) {
+                    currentRateCompra = data.rateCompra || 0;
+                    currentRateVenta = data.rateVenta || 0;
+                    document.getElementById('inputTasaCompra').value = currentRateCompra || '';
+                    document.getElementById('inputTasaVenta').value = currentRateVenta || '';
                     document.getElementById('labelTasaStatus').innerText = "";
                 } else {
-                    currentRate = 0;
-                    inputTasa.value = "";
+                    currentRateCompra = 0;
+                    currentRateVenta = 0;
+                    document.getElementById('inputTasaCompra').value = '';
+                    document.getElementById('inputTasaVenta').value = '';
                     document.getElementById('labelTasaStatus').innerText = "Sin tasa";
                 }
             } catch (error) {
@@ -829,12 +818,14 @@
             const syncIcon = document.getElementById('syncTasa');
             syncIcon.classList.add('active');
             
-            const rawRate = inputTasa.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
-            currentRate = parseFloat(rawRate) || 0;
+            const rawCompra = document.getElementById('inputTasaCompra').value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+            const rawVenta = document.getElementById('inputTasaVenta').value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+            currentRateCompra = parseFloat(rawCompra) || 0;
+            currentRateVenta = parseFloat(rawVenta) || 0;
 
             clearTimeout(rateDebounceTimer);
             rateDebounceTimer = setTimeout(async () => {
-                if (currentRate > 0) {
+                if (currentRateCompra > 0 || currentRateVenta > 0) {
                     try {
                         await fetch(`${API_URL}/api/rates/${storeId}`, {
                             method: 'PUT',
@@ -842,7 +833,8 @@
                             body: JSON.stringify({
                                 fromCurrency: currentStore.monedaEntrega.code,
                                 toCurrency: currentStore.monedaRecibe.code,
-                                rate: currentRate
+                                rateCompra: currentRateCompra,
+                                rateVenta: currentRateVenta
                             })
                         });
                         syncIcon.classList.remove('active');
@@ -891,7 +883,8 @@
                         montoEntrega: "0",
                         montoRecibe: "0",
                         monedaEntrega: currentStore.monedaEntrega,
-                        monedaRecibe: currentStore.monedaRecibe
+                        monedaRecibe: currentStore.monedaRecibe,
+                                operationType: operationType
                     })
                 });
                 showToast(`Moneda cambiada a ${currencyObj.code}`);
@@ -926,35 +919,35 @@
             const entregaIsStrong = strengthEnt > strengthRec;
             const recibeIsStrong = strengthRec > strengthEnt;
 
-            if (type === 'entrega' && currentRate > 0) {
+            if (type === 'entrega' && (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta) > 0) {
                 const rawEntrega = inputEntrega.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
                 const numEntrega = parseFloat(rawEntrega) || 0;
                 
                 if (numEntrega > 0) {
                     let calc = 0;
                     if (entregaIsStrong) {
-                        calc = numEntrega * currentRate;
+                        calc = numEntrega * (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta);
                     } else if (recibeIsStrong) {
-                        calc = numEntrega / currentRate;
+                        calc = numEntrega / (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta);
                     } else {
-                        calc = numEntrega * currentRate;
+                        calc = numEntrega * (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta);
                     }
                     inputRecibe.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
                 } else {
                     inputRecibe.value = "0";
                 }
-            } else if (type === 'recibe' && currentRate > 0) {
+            } else if (type === 'recibe' && (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta) > 0) {
                 const rawRecibe = inputRecibe.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
                 const numRecibe = parseFloat(rawRecibe) || 0;
                 
                 if (numRecibe > 0) {
                     let calc = 0;
                     if (entregaIsStrong) {
-                        calc = numRecibe / currentRate;
+                        calc = numRecibe / (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta);
                     } else if (recibeIsStrong) {
-                        calc = numRecibe * currentRate;
+                        calc = numRecibe * (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta);
                     } else {
-                        calc = numRecibe / currentRate;
+                        calc = numRecibe / (operationType === 'COMPRA' ? currentRateCompra : currentRateVenta);
                     }
                     inputEntrega.value = Number.isInteger(calc) ? calc.toString() : calc.toFixed(2).replace(/\.00$/, '');
                 } else {
@@ -974,7 +967,8 @@
                     montoEntrega: montoEntrega,
                     montoRecibe: montoRecibe,
                     monedaEntrega: currentStore.monedaEntrega,
-                    monedaRecibe: currentStore.monedaRecibe
+                    monedaRecibe: currentStore.monedaRecibe,
+                                operationType: operationType
                 };
 
                 try {
@@ -1014,7 +1008,8 @@
                         montoEntrega: "0",
                         montoRecibe: "0",
                         monedaEntrega: currentStore.monedaEntrega,
-                        monedaRecibe: currentStore.monedaRecibe
+                        monedaRecibe: currentStore.monedaRecibe,
+                                operationType: operationType
                     })
                 });
                 showToast("Divisas invertidas");

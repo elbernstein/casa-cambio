@@ -12,9 +12,9 @@ exports.getRate = async (req, res) => {
         const rateData = await ExchangeRate.findOne({ storeId, fromCurrency: from, toCurrency: to });
         
         if (rateData) {
-            res.json({ success: true, rate: rateData.rate });
+            res.json({ success: true, rateCompra: rateData.rateCompra, rateVenta: rateData.rateVenta });
         } else {
-            res.json({ success: true, rate: null }); // No rate set yet
+            res.json({ success: true, rateCompra: null, rateVenta: null }); // No rate set yet
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -24,15 +24,19 @@ exports.getRate = async (req, res) => {
 exports.updateRate = async (req, res) => {
     try {
         const storeId = req.params.storeId;
-        const { fromCurrency, toCurrency, rate } = req.body;
+        const { fromCurrency, toCurrency, rateCompra, rateVenta } = req.body;
 
-        if (!fromCurrency || !toCurrency || rate == null) {
+        if (!fromCurrency || !toCurrency) {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
+        const updateFields = { updatedAt: Date.now() };
+        if (rateCompra != null) updateFields.rateCompra = rateCompra;
+        if (rateVenta != null) updateFields.rateVenta = rateVenta;
+
         const updatedRate = await ExchangeRate.findOneAndUpdate(
             { storeId, fromCurrency, toCurrency },
-            { rate, updatedAt: Date.now() },
+            updateFields,
             { upsert: true, new: true }
         );
 
