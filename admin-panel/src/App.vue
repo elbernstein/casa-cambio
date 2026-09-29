@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 
 // URL Dinámica (local vs producción)
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://api.cambioseurodolar.com';
 
 const CURRENCIES = ref([]);
+const activeCurrencies = computed(() => CURRENCIES.value.filter(c => c.isActive !== false));
 const showCurrencyModal = ref(false);
 const newCurrency = ref({ code: '', name: '', flagUrl: '', strength: 0 });
 const addingCurrency = ref(false);
@@ -18,7 +19,8 @@ const fetchCurrencies = async () => {
       name: c.code, // or some default name
       flagUrl: c.flagUrl,
       strength: c.strength,
-      _id: c._id
+      _id: c._id,
+      isActive: c.isActive
     }));
   } catch (error) {
     console.error("Error fetching currencies:", error);
@@ -39,6 +41,15 @@ const addCurrency = async () => {
     alert("Error al agregar moneda");
   }
   addingCurrency.value = false;
+};
+const toggleCurrency = async (c) => {
+  try {
+    await axios.put(`${API_URL}/api/currencies/${c._id}/toggle`);
+    await fetchCurrencies();
+  } catch (err) {
+    console.error(err);
+    alert("Error al cambiar estado de moneda");
+  }
 };
 const deleteCurrency = async (id) => {
   if (!confirm("¿Seguro que deseas eliminar esta moneda?")) return;
@@ -90,6 +101,7 @@ const fetchStores = async () => {
         const localStore = stores.value.find(s => s._id === serverStore._id);
         if (localStore) {
           localStore.name = serverStore.name;
+          localStore.operationType = serverStore.operationType || 'COMPRA';
           // Solo sobrescribir los números si el usuario NO está escribiendo actualmente
           if (!activeInputs.value[localStore._id]) {
             localStore.montoEntrega = serverStore.montoEntrega;
@@ -311,7 +323,8 @@ const emitAmounts = async (store) => {
       montoEntrega: store.montoEntrega,
       montoRecibe: store.montoRecibe,
       monedaEntrega: store.monedaEntrega,
-      monedaRecibe: store.monedaRecibe
+      monedaRecibe: store.monedaRecibe,
+      operationType: store.operationType
     });
   } catch (error) {
     console.error("Error emitting amounts:", error);
@@ -335,7 +348,7 @@ const handleAmountInput = (store, isEntrega) => {
   clearTimeout(emitDebounceTimer);
   
   // LÓGICA DE TASA AUTOMÁTICA
-  const rate = parseFloat(store.tasa) || 0;
+  const rate = parseFloat(store.operationType === 'COMPRA' ? store.tasaCompra : store.tasaVenta) || parseFloat(store.tasa) || 0;
   if (rate > 0) {
     const codeEnt = store.monedaEntrega?.code || 'USD';
     const codeRec = store.monedaRecibe?.code || 'COP';
@@ -438,15 +451,22 @@ onMounted(async () => {
           <div class="manage-section">
             <h4>📋 Monedas Disponibles</h4>
             <div class="playlist-container" style="max-height: 300px;">
-              <div v-for="c in CURRENCIES" :key="c._id" class="playlist-item">
+              <div v-for="c in CURRENCIES" :key="c._id" class="playlist-item" :style="c.isActive === false ? 'opacity: 0.5' : ''">
                 <div class="ad-preview">
                   <img :src="c.flagUrl" alt="flag" />
                   <div class="ad-info">
-                    <p style="margin:0; color: #fff; font-weight: 600;">{{ c.code }}</p>
+                    <p style="margin:0; color: #fff; font-weight: 600;">
+                      {{ c.code }} <span v-if="c.isActive === false" style="color: #ef4444; font-size: 0.8em;">(Inactiva)</span>
+                    </p>
                     <small style="color: var(--text-secondary)">Fuerza: {{ c.strength }}</small>
                   </div>
                 </div>
-                <button @click="deleteCurrency(c._id)" class="btn-delete-ad">🗑️</button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button @click="toggleCurrency(c)" class="btn-manage" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; min-width: 80px;">
+                    {{ c.isActive !== false ? 'Desactivar' : 'Activar' }}
+                  </button>
+                  <button @click="deleteCurrency(c._id)" class="btn-delete-ad">🗑️</button>
+                </div>
               </div>
             </div>
           </div>
@@ -469,13 +489,13 @@ onMounted(async () => {
             <div class="form-group">
               <label>Moneda Entrega por defecto:</label>
               <select v-model="storeSettings.defaultMonedaEntrega" class="input-dark">
-                <option v-for="c in CURRENCIES" :key="'ent_'+c.code" :value="c">{{ c.name }}</option>
+                <option v-for="c in activeCurrencies" :key="'ent_'+c.code" :value="c">{{ c.name }}</option>
               </select>
             </div>
             <div class="form-group">
               <label>Moneda Recibe por defecto:</label>
               <select v-model="storeSettings.defaultMonedaRecibe" class="input-dark">
-                <option v-for="c in CURRENCIES" :key="'rec_'+c.code" :value="c">{{ c.name }}</option>
+                <option v-for="c in activeCurrencies" :key="'rec_'+c.code" :value="c">{{ c.name }}</option>
               </select>
             </div>
             <div class="form-group">
@@ -570,20 +590,36 @@ onMounted(async () => {
             <!-- Selector de Divisas y Swap -->
             <div class="currency-selectors">
               <select v-model="store.monedaEntrega" @change="emitAmounts(store)" class="currency-select">
-                <option v-for="c in CURRENCIES" :key="c.code" :value="c">{{ c.name }}</option>
+                <option v-for="c in activeCurrencies" :key="c.code" :value="c">{{ c.name }}</option>
               </select>
               <button @click="swapCurrencies(store)" class="btn-swap" title="Invertir Divisas">
                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="14" x2="21" y2="3"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="20" y1="10" x2="3" y2="21"></line></svg>
               </button>
               <select v-model="store.monedaRecibe" @change="emitAmounts(store)" class="currency-select">
-                <option v-for="c in CURRENCIES" :key="c.code" :value="c">{{ c.name }}</option>
+                <option v-for="c in activeCurrencies" :key="c.code" :value="c">{{ c.name }}</option>
               </select>
             </div>
             
             <!-- Tasa de Cambio -->
-            <div class="rate-input-group">
-              <span class="rate-label">Tasa de Cambio:</span>
-              <input type="number" v-model="store.tasa" class="rate-input" placeholder="Ej: 4050" />
+            <div class="rate-input-group" style="flex-direction: column; gap: 0.5rem; align-items: stretch; border: 1px solid var(--card-border); padding: 0.5rem; border-radius: 8px;">
+              <div style="display: flex; gap: 1rem;">
+                <div style="flex:1;">
+                  <span class="rate-label" style="font-size: 0.75rem;">COMPRA:</span>
+                  <input type="number" v-model="store.tasaCompra" @input="handleAmountInput(store, true)" class="rate-input" placeholder="Ej: 4050" style="margin-top:0.25rem;" />
+                </div>
+                <div style="flex:1;">
+                  <span class="rate-label" style="font-size: 0.75rem;">VENTA:</span>
+                  <input type="number" v-model="store.tasaVenta" @input="handleAmountInput(store, true)" class="rate-input" placeholder="Ej: 4100" style="margin-top:0.25rem;" />
+                </div>
+              </div>
+              <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; background: var(--bg-dark); padding: 0.5rem; border-radius: 6px;">
+                <label style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; cursor:pointer; font-size:0.85rem;">
+                  <input type="radio" :name="'op_'+store._id" value="COMPRA" v-model="store.operationType" @change="handleAmountInput(store, true)" /> Compra
+                </label>
+                <label style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; cursor:pointer; font-size:0.85rem;">
+                  <input type="radio" :name="'op_'+store._id" value="VENTA" v-model="store.operationType" @change="handleAmountInput(store, true)" /> Venta
+                </label>
+              </div>
             </div>
             
             <!-- Montos -->

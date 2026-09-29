@@ -106,3 +106,19 @@ exports.deleteCurrency = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
+exports.toggleCurrencyStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const currency = await Currency.findById(id);
+        if (!currency) {
+            return res.status(404).json({ error: 'Currency not found' });
+        }
+        currency.isActive = !currency.isActive;
+        await currency.save();
+        res.status(200).json(currency);
+    } catch (err) {
+        console.error('Error toggling currency status:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
