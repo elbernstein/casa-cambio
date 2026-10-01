@@ -72,7 +72,7 @@ exports.getAllCurrencies = async (req, res) => {
 
 exports.addCurrency = async (req, res) => {
     try {
-        const { code, flagUrl, strength } = req.body;
+        const { code, name, flagUrl, strength } = req.body;
         if (!code || !flagUrl) {
             return res.status(400).json({ error: 'Code and flagUrl are required' });
         }
@@ -84,6 +84,7 @@ exports.addCurrency = async (req, res) => {
 
         const newCurrency = new Currency({
             code: code.toUpperCase(),
+            name: name || '',
             flagUrl,
             strength: strength || 0
         });

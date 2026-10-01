@@ -3,6 +3,7 @@ import AVKit
 
 struct ContentView: View {
     @StateObject private var socketObj = SocketManagerObj.shared
+    @Environment(\.scenePhase) var scenePhase
     
     // Estados para Login
     @State private var username = ""
@@ -23,6 +24,15 @@ struct ContentView: View {
             }
         }
         .edgesIgnoringSafeArea(.all)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                if socketObj.isAuthenticated {
+                    socketObj.resetIdleTimer()
+                }
+            } else if newPhase == .background || newPhase == .inactive {
+                socketObj.stopIdleTimer()
+            }
+        }
     }
     
     // MARK: - Login View
@@ -31,8 +41,8 @@ struct ContentView: View {
             Image("logo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 80)
-                .padding(.bottom, 20)
+                .frame(height: 140)
+                .padding(.bottom, 10)
             
             Text("Iniciar Sesión (Receptor)")
                 .font(.title)
@@ -89,7 +99,7 @@ struct ContentView: View {
                         Image("logo")
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 50)
+                            .frame(height: 100)
                         
                         Spacer()
                         
@@ -240,6 +250,7 @@ struct ContentView: View {
                             
                         }
                         .padding(.horizontal, 20)
+                        .offset(y: -40)
                         
                         // PANTALLA DE PUBLICIDAD (INACTIVIDAD) - Solo cubre la zona inferior
                         if socketObj.isIdle && !socketObj.playlist.isEmpty {
@@ -251,12 +262,11 @@ struct ContentView: View {
                                 
                                 if let adUrl = URL(string: adUrlString) {
                                     ZStack {
-                                        Color.black.edgesIgnoringSafeArea(.all)
-                                        
+                                        Color.white
                                         if adType == "video" {
-                                            AutoPlayingVideo(url: adUrl)
-                                                .disabled(true) // Intenta deshabilitar controles nativos
-                                                .id(adUrlString) // Fuerza recrear el video si cambia la URL
+                                            VideoPlayerView(url: adUrl)
+                                                .disabled(true) // Deshabilita controles para que el tap pase
+                                                .id(socketObj.currentAdIndex) // Fuerza recrear la vista al cambiar de índice
                                         } else {
                                             AsyncImage(url: adUrl) { phase in
                                                 switch phase {
@@ -276,45 +286,15 @@ struct ContentView: View {
                                                     EmptyView()
                                                 }
                                             }
-                                            .id(adUrlString) // Fuerza recrear la imagen
                                         }
                                         
-                                        // Escudo invisible absoluto: Atrapa los toques para que el reproductor no se los trague
-                                        Color.clear
-                                            .contentShape(Rectangle())
+                                        // Capa transparente para atrapar el primer toque siempre
+                                        Color.black.opacity(0.001)
+                                            .edgesIgnoringSafeArea(.all)
                                             .onTapGesture {
+                                                NotificationCenter.default.post(name: NSNotification.Name("StopVideo"), object: nil)
                                                 socketObj.resetIdleTimer()
                                             }
-                                            
-                                        // Botón SALTAR visible en la parte superior derecha
-                                        VStack {
-                                            HStack {
-                                                Spacer()
-                                                Button(action: {
-                                                    socketObj.resetIdleTimer()
-                                                }) {
-                                                    HStack {
-                                                        Text("Saltar")
-                                                            .fontWeight(.bold)
-                                                        Image(systemName: "arrow.right.circle.fill")
-                                                    }
-                                                    .font(.system(size: 24))
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 30)
-                                                    .padding(.vertical, 15)
-                                                    .background(Color.black.opacity(0.6))
-                                                    .cornerRadius(40)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 40)
-                                                            .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                                                    )
-                                                }
-                                                .padding(.top, 40)
-                                                .padding(.trailing, 40)
-                                            }
-                                            Spacer()
-                                        }
-                                        .zIndex(30)
                                     }
                                     .transition(.opacity)
                                     .zIndex(2)
@@ -356,38 +336,26 @@ struct ContentView: View {
 }
 
 // Vista auxiliar para reproducir videos automáticamente y en bucle usando UIKit
-struct AutoPlayingVideo: View {
-    let url: URL
-
-    var body: some View {
-        VideoPlayerView(url: url)
-    }
-}
-
 struct VideoPlayerView: UIViewControllerRepresentable {
     let url: URL
     
     class Coordinator: NSObject {
         var player: AVPlayer?
-        var observers: [Any] = []
+        var tokenStop: Any?
+        var tokenLoop: Any?
         
         deinit {
-            cleanup()
-        }
-        
-        func cleanup() {
-            player?.pause()
-            player?.replaceCurrentItem(with: nil)
-            for observer in observers {
-                NotificationCenter.default.removeObserver(observer)
+            if let token = tokenStop {
+                NotificationCenter.default.removeObserver(token)
             }
-            observers.removeAll()
-            player = nil
+            if let token = tokenLoop {
+                NotificationCenter.default.removeObserver(token)
+            }
         }
     }
     
     func makeCoordinator() -> Coordinator {
-        return Coordinator()
+        Coordinator()
     }
     
     func makeUIViewController(context: Context) -> AVPlayerViewController {
@@ -399,61 +367,39 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         controller.player = player
         context.coordinator.player = player
         
-        // Looping
-        let obs1 = NotificationCenter.default.addObserver(
+        // Al terminar el video
+        context.coordinator.tokenLoop = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: player.currentItem,
             queue: .main
-        ) { [weak player] _ in
-            player?.seek(to: .zero)
-            player?.play()
+        ) { _ in
+            if SocketManagerObj.shared.playlist.count <= 1 {
+                player.seek(to: .zero)
+                player.play()
+            } else {
+                NotificationCenter.default.post(name: NSNotification.Name("NextAd"), object: nil)
+            }
         }
         
-        // Manejar envío a segundo plano
-        let obs2 = NotificationCenter.default.addObserver(
-            forName: UIApplication.didEnterBackgroundNotification,
+        // Escuchar evento para detener inmediatamente
+        context.coordinator.tokenStop = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("StopVideo"),
             object: nil,
             queue: .main
-        ) { [weak player] _ in
-            player?.pause()
+        ) { _ in
+            player.pause()
         }
         
-        // Manejar regreso a primer plano
-        let obs3 = NotificationCenter.default.addObserver(
-            forName: UIApplication.willEnterForegroundNotification,
-            object: nil,
-            queue: .main
-        ) { [weak player] _ in
-            player?.play()
-        }
-        
-        // Manejar parada manual
-        let obs4 = NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("StopVideoPlayback"),
-            object: nil,
-            queue: .main
-        ) { [weak player] _ in
-            player?.pause()
-            player?.volume = 0
-            player?.replaceCurrentItem(with: nil)
-        }
-        
-        context.coordinator.observers = [obs1, obs2, obs3, obs4]
-        
-        // NO reproducir si la app está en segundo plano (minimizada)
-        if UIApplication.shared.applicationState == .active {
-            player.play()
-        }
-        
+        player.play()
         return controller
     }
     
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        // No update needed
+        // No update needed for basic playback
     }
     
     static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Coordinator) {
-        coordinator.cleanup()
+        uiViewController.player?.pause()
         uiViewController.player = nil
     }
 }

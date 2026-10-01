@@ -16,7 +16,7 @@ const fetchCurrencies = async () => {
     const res = await axios.get(`${API_URL}/api/currencies`);
     CURRENCIES.value = res.data.map(c => ({
       code: c.code,
-      name: c.code, // or some default name
+      name: c.name || '',
       flagUrl: c.flagUrl,
       strength: c.strength,
       _id: c._id,
@@ -443,8 +443,9 @@ onMounted(async () => {
             <h4>➕ Agregar Moneda</h4>
             <div class="form-group flex-row">
               <input v-model="newCurrency.code" type="text" placeholder="Código (ej. USD)" class="input-dark" style="margin-top:0;" />
+              <input v-model="newCurrency.name" type="text" placeholder="Nombre (ej. Dólar)" class="input-dark" style="margin-top:0;" />
               <input v-model="newCurrency.flagUrl" type="text" placeholder="URL Bandera" class="input-dark" style="margin-top:0;" />
-              <input v-model="newCurrency.strength" type="number" placeholder="Fuerza (0-100)" class="input-dark" style="margin-top:0; width: 100px;" />
+              <input v-model="newCurrency.strength" type="number" placeholder="Fuerza" class="input-dark" style="margin-top:0; width: 80px;" />
               <button @click="addCurrency" class="btn-save" :disabled="addingCurrency">Agregar</button>
             </div>
           </div>

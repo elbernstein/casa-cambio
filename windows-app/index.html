@@ -723,12 +723,14 @@
         // Poblar selects de divisas
         function populateCurrencySelects() {
             const activeCurrencies = CURRENCIES.filter(c => c.isActive !== false);
-            const html = activeCurrencies.map(c => `
+            const html = activeCurrencies.map(c => {
+                const displayName = c.name ? `${c.code} - ${c.name}` : c.code;
+                return `
                 <div class="dropdown-item" onclick="onCurrencySelectChange('${c.code}', 'TYPE_PLACEHOLDER', event)">
                     <img src="${c.flagUrl}" alt="${c.code}">
-                    <span>${c.code}</span>
+                    <span>${displayName}</span>
                 </div>
-            `).join('');
+            `}).join('');
             document.getElementById('dropdownEntrega').innerHTML = html.replace(/TYPE_PLACEHOLDER/g, 'entrega');
             document.getElementById('dropdownRecibe').innerHTML = html.replace(/TYPE_PLACEHOLDER/g, 'recibe');
         }

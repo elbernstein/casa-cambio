@@ -21,14 +21,22 @@ class SocketManagerObj: ObservableObject {
     private var manager: SocketManager?
     private var socket: SocketIOClient?
     private let pdvID = "pdv-1"
-    
+ 
     // Timer para el idle
     private var idleTimer: Timer?
-    
+    	
     private init() {
         if let savedToken = UserDefaults.standard.string(forKey: "jwtToken") {
             self.isAuthenticated = true
             setupSocket(token: savedToken)
+        }
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("NextAd"), object: nil, queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            if self.isIdle && !self.playlist.isEmpty {
+                self.currentAdIndex = (self.currentAdIndex + 1) % self.playlist.count
+                self.startAdRotation()
+            }
         }
     }
     
@@ -156,7 +164,6 @@ class SocketManagerObj: ObservableObject {
     
     func resetIdleTimer() {
         self.isIdle = false
-        NotificationCenter.default.post(name: NSNotification.Name("StopVideoPlayback"), object: nil)
         idleTimer?.invalidate()
         idleTimer = Timer.scheduledTimer(withTimeInterval: self.idleTimeout, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
@@ -164,6 +171,15 @@ class SocketManagerObj: ObservableObject {
                 self?.startAdRotation()
             }
         }
+    }
+    
+    func stopIdleTimer() {
+        idleTimer?.invalidate()
+        idleTimer = nil
+        adRotationTimer?.invalidate()
+        adRotationTimer = nil
+        self.isIdle = false
+        NotificationCenter.default.post(name: NSNotification.Name("StopVideo"), object: nil)
     }
     
     func login(username: String, pass: String) {
@@ -202,13 +218,20 @@ class SocketManagerObj: ObservableObject {
     // Timer para rotar publicidad
     private var adRotationTimer: Timer?
     
-    private func startAdRotation() {
+    func startAdRotation() {
         adRotationTimer?.invalidate()
-        // Rotar cada 10 segundos
-        adRotationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            if self.isIdle && !self.playlist.isEmpty {
-                self.currentAdIndex = (self.currentAdIndex + 1) % self.playlist.count
+        guard !playlist.isEmpty, isIdle else { return }
+        
+        let currentAd = playlist[currentAdIndex]
+        let type = currentAd["type"] as? String ?? "image"
+        
+        if type == "image" {
+            adRotationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
+                guard let self = self else { return }
+                if self.isIdle && !self.playlist.isEmpty {
+                    self.currentAdIndex = (self.currentAdIndex + 1) % self.playlist.count
+                    self.startAdRotation()
+                }
             }
         }
     }
