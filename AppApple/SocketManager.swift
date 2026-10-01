@@ -10,6 +10,7 @@ class SocketManagerObj: ObservableObject {
     @Published var montoRecibe: String = "0.00"
     @Published var monedaEntrega: [String: String]? = nil
     @Published var monedaRecibe: [String: String]? = nil
+    @Published var operationType: String = "COMPRA"
     @Published var isAuthenticated: Bool = false
     @Published var loginError: String? = nil
     @Published var isIdle: Bool = true
@@ -69,6 +70,10 @@ class SocketManagerObj: ObservableObject {
                     }
                     if let cRecibe = data["monedaRecibe"] as? [String: String] {
                         self?.monedaRecibe = cRecibe
+                    }
+                    
+                    if let opType = data["operationType"] as? String {
+                        self?.operationType = opType
                     }
                     
                     if let settings = data["settings"] as? [String: Any],
@@ -133,6 +138,10 @@ class SocketManagerObj: ObservableObject {
                     }
                     if let cRecibe = data["monedaRecibe"] as? [String: String] {
                         self?.monedaRecibe = cRecibe
+                    }
+                    
+                    if let opType = data["operationType"] as? String {
+                        self?.operationType = opType
                     }
                     
                     self?.resetIdleTimer()

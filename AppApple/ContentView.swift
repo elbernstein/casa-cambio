@@ -131,10 +131,20 @@ struct ContentView: View {
                     ZStack {
                         // Contenido Central
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("OPERACIÓN ACTUAL")
-                                .font(.system(size: 40, weight: .medium))
-                                .foregroundColor(textGray)
-                                .padding(.leading, 10)
+                            HStack(spacing: 20) {
+                                Text("OPERACIÓN ACTUAL")
+                                    .font(.system(size: 40, weight: .medium))
+                                    .foregroundColor(textGray)
+                                
+                                Text(socketObj.operationType == "COMPRA" ? "COMPRA / BUY" : "VENTA / SELL")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 8)
+                                    .background(socketObj.operationType == "COMPRA" ? Color.green : Color.red)
+                                    .cornerRadius(12)
+                            }
+                            .padding(.leading, 10)
                             
                             // Tarjeta Blanca con Sombra
                             HStack(alignment: .center, spacing: 20) {
