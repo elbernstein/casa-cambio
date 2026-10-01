@@ -242,22 +242,54 @@
             flex-shrink: 0;
         }
 
-        .currency-select-wrapper select {
-            background: transparent;
-            border: none;
+        .custom-select {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+        .custom-select-label {
             color: #f8fafc;
             font-size: 13px;
             font-weight: 700;
             font-family: 'Inter', sans-serif;
-            outline: none;
-            width: 100%;
-            cursor: pointer;
+            flex: 1;
         }
-
-        .currency-select-wrapper select option {
-            font-weight: 500;
+        .dropdown-list {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 200px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            margin-top: 4px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+        .dropdown-list.show {
+            display: block;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            color: white;
             font-size: 13px;
-            color: black;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dropdown-item:hover {
+            background: #334155;
+        }
+        .dropdown-item img {
+            width: 24px;
+            height: 16px;
+            border-radius: 3px;
+            object-fit: cover;
         }
 
         .swap-btn {
@@ -542,16 +574,18 @@
             
             <!-- Monedas y Swap -->
             <div class="currency-row">
-                <div class="currency-select-wrapper">
+                <div class="currency-select-wrapper custom-select" id="wrapperEntrega" onclick="toggleDropdown('entrega')">
                     <img id="flagEntrega" src="https://flagcdn.com/w160/ca.webp" alt="Flag">
-                    <select id="selectEntrega" onchange="onCurrencySelectChange('entrega')">
-                    </select>
+                    <span id="selectedEntregaText" class="custom-select-label">CAD</span>
+                    <span style="color:#64748b; font-size:10px; margin-left:auto;">▼</span>
+                    <div class="dropdown-list" id="dropdownEntrega"></div>
                 </div>
                 <button class="swap-btn" title="Invertir divisas" onclick="swapCurrencies()">⇄</button>
-                <div class="currency-select-wrapper">
+                <div class="currency-select-wrapper custom-select" id="wrapperRecibe" onclick="toggleDropdown('recibe')">
                     <img id="flagRecibe" src="https://flagcdn.com/w160/co.webp" alt="Flag">
-                    <select id="selectRecibe" onchange="onCurrencySelectChange('recibe')">
-                    </select>
+                    <span id="selectedRecibeText" class="custom-select-label">COP</span>
+                    <span style="color:#64748b; font-size:10px; margin-left:auto;">▼</span>
+                    <div class="dropdown-list" id="dropdownRecibe"></div>
                 </div>
             </div>
 
@@ -686,18 +720,39 @@
         const panel = document.getElementById('actionPanel');
         const inputEntrega = document.getElementById('inputEntrega');
         const inputRecibe = document.getElementById('inputRecibe');
-        // inputTasa removed - now using inputTasaCompra and inputTasaVenta
-        const selectEntrega = document.getElementById('selectEntrega');
-        const selectRecibe = document.getElementById('selectRecibe');
-        const toastMsg = document.getElementById('toastMsg');
-
         // Poblar selects de divisas
         function populateCurrencySelects() {
             const activeCurrencies = CURRENCIES.filter(c => c.isActive !== false);
-            const optionsHtml = activeCurrencies.map(c => `<option value="${c.code}">${c.code}</option>`).join('');
-            selectEntrega.innerHTML = optionsHtml;
-            selectRecibe.innerHTML = optionsHtml;
+            const html = activeCurrencies.map(c => `
+                <div class="dropdown-item" onclick="onCurrencySelectChange('${c.code}', 'TYPE_PLACEHOLDER', event)">
+                    <img src="${c.flagUrl}" alt="${c.code}">
+                    <span>${c.code}</span>
+                </div>
+            `).join('');
+            document.getElementById('dropdownEntrega').innerHTML = html.replace(/TYPE_PLACEHOLDER/g, 'entrega');
+            document.getElementById('dropdownRecibe').innerHTML = html.replace(/TYPE_PLACEHOLDER/g, 'recibe');
         }
+
+        function toggleDropdown(type) {
+            if (type === 'entrega') {
+                document.getElementById('dropdownEntrega').classList.toggle('show');
+                document.getElementById('dropdownRecibe').classList.remove('show');
+            } else {
+                document.getElementById('dropdownRecibe').classList.toggle('show');
+                document.getElementById('dropdownEntrega').classList.remove('show');
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#wrapperEntrega')) {
+                const de = document.getElementById('dropdownEntrega');
+                if(de) de.classList.remove('show');
+            }
+            if (!e.target.closest('#wrapperRecibe')) {
+                const dr = document.getElementById('dropdownRecibe');
+                if(dr) dr.classList.remove('show');
+            }
+        });
 
         // Toggle panel al hacer clic en el Assistive Touch
         btn.addEventListener('click', () => {
@@ -789,8 +844,8 @@
         }
 
         function updateCurrencyDisplay() {
-            selectEntrega.value = currentStore.monedaEntrega.code;
-            selectRecibe.value = currentStore.monedaRecibe.code;
+            document.getElementById('selectedEntregaText').innerText = currentStore.monedaEntrega.code;
+            document.getElementById('selectedRecibeText').innerText = currentStore.monedaRecibe.code;
 
             document.getElementById('flagEntrega').src = currentStore.monedaEntrega.flagUrl;
             document.getElementById('labelEntregaCode').innerText = currentStore.monedaEntrega.code;
@@ -874,9 +929,12 @@
         }
 
         // Al cambiar de divisa en el select
-        async function onCurrencySelectChange(type) {
-            const selectedCode = type === 'entrega' ? selectEntrega.value : selectRecibe.value;
-            const currencyObj = CURRENCIES.find(c => c.code === selectedCode);
+        async function onCurrencySelectChange(code, type, event) {
+            if (event) event.stopPropagation();
+            document.getElementById('dropdownEntrega').classList.remove('show');
+            document.getElementById('dropdownRecibe').classList.remove('show');
+            
+            const currencyObj = CURRENCIES.find(c => c.code === code);
             if (!currencyObj) return;
 
             if (type === 'entrega') {
