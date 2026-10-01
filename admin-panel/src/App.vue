@@ -457,7 +457,7 @@ onMounted(async () => {
                   <img :src="c.flagUrl" alt="flag" />
                   <div class="ad-info">
                     <p style="margin:0; color: #fff; font-weight: 600;">
-                      {{ c.code }} <span v-if="c.isActive === false" style="color: #ef4444; font-size: 0.8em;">(Inactiva)</span>
+                      {{ c.code }} - {{ c.name || 'Sin nombre' }} <span v-if="c.isActive === false" style="color: #ef4444; font-size: 0.8em;">(Inactiva)</span>
                     </p>
                     <small style="color: var(--text-secondary)">Fuerza: {{ c.strength }}</small>
                   </div>
