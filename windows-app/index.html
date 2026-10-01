@@ -255,10 +255,9 @@
         }
 
         .currency-select-wrapper select option {
-            background: #1e293b;
-            color: white;
             font-weight: 500;
             font-size: 13px;
+            color: black;
         }
 
         .swap-btn {
@@ -695,7 +694,7 @@
         // Poblar selects de divisas
         function populateCurrencySelects() {
             const activeCurrencies = CURRENCIES.filter(c => c.isActive !== false);
-            const optionsHtml = activeCurrencies.map(c => `<option value="${c.code}">${c.code} - ${c.name}</option>`).join('');
+            const optionsHtml = activeCurrencies.map(c => `<option value="${c.code}">${c.code}</option>`).join('');
             selectEntrega.innerHTML = optionsHtml;
             selectRecibe.innerHTML = optionsHtml;
         }
