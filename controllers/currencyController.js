@@ -59,10 +59,28 @@ exports.getAllCurrencies = async (req, res) => {
         const existingCodes = currencies.map(c => c.code);
         const missingCurrencies = defaultCurrencies.filter(c => !existingCodes.includes(c.code));
         
+        let needsUpdate = false;
+        
         if (missingCurrencies.length > 0) {
             await Currency.insertMany(missingCurrencies);
+            needsUpdate = true;
+        }
+
+        // Backfill names for existing currencies that don't have one
+        for (let currency of currencies) {
+            if (!currency.name || currency.name.trim() === '') {
+                const def = defaultCurrencies.find(d => d.code === currency.code);
+                if (def) {
+                    await Currency.updateOne({ _id: currency._id }, { $set: { name: def.name } });
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        if (needsUpdate) {
             currencies = await Currency.find().sort({ strength: -1 });
         }
+
         res.json(currencies);
     } catch (err) {
         console.error('Error getting currencies:', err);
