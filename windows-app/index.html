@@ -656,9 +656,11 @@
         let storeId = null; 
         
         // Cargar storeId desde main
-        ipcRenderer.invoke('get-store-id').then(id => {
+        ipcRenderer.invoke('get-store-id').then(async id => {
             if (id) {
                 storeId = id;
+                await fetchCurrencies();
+                populateCurrencySelects();
                 loadStoreData();
                 fetchCurrentRate();
             }
@@ -1137,7 +1139,6 @@
         });
 
         // Carga inicial
-        populateCurrencySelects();
         // Nota: loadStoreData() y fetchCurrentRate() se llaman una vez que el main envia el storeId
     </script>
 </body>
