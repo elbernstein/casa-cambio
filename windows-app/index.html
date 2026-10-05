@@ -940,9 +940,9 @@
             if (!currencyObj) return;
 
             if (type === 'entrega') {
-                currentStore.monedaEntrega = { code: currencyObj.code, flagUrl: currencyObj.flagUrl };
+                currentStore.monedaEntrega = { code: currencyObj.code, flagUrl: currencyObj.flagUrl, strength: currencyObj.strength };
             } else {
-                currentStore.monedaRecibe = { code: currencyObj.code, flagUrl: currencyObj.flagUrl };
+                currentStore.monedaRecibe = { code: currencyObj.code, flagUrl: currencyObj.flagUrl, strength: currencyObj.strength };
             }
 
             updateCurrencyDisplay();
@@ -977,23 +977,12 @@
             const syncIcon = document.getElementById(type === 'entrega' ? 'syncEntrega' : 'syncRecibe');
             if (syncIcon) syncIcon.classList.add('active');
 
-            const currencyHierarchy = {
-                'GBP': 100,
-                'EUR': 90,
-                'CHF': 80,
-                'USD': 70,
-                'CAD': 60,
-                'AUD': 55,
-                'BRL': 50,
-                'MXN': 40,
-                'ARS': 30,
-                'COP': 20,
-                'CLP': 10,
-                'VES': 1
-            };
-
-            const strengthEnt = currencyHierarchy[currentStore.monedaEntrega.code] || 0;
-            const strengthRec = currencyHierarchy[currentStore.monedaRecibe.code] || 0;
+            // Find full currency object from CURRENCIES array to get up-to-date strength
+            const curEnt = CURRENCIES.find(c => c.code === currentStore.monedaEntrega.code);
+            const curRec = CURRENCIES.find(c => c.code === currentStore.monedaRecibe.code);
+            
+            const strengthEnt = curEnt ? (curEnt.strength || 0) : 0;
+            const strengthRec = curRec ? (curRec.strength || 0) : 0;
             const entregaIsStrong = strengthEnt > strengthRec;
             const recibeIsStrong = strengthRec > strengthEnt;
 
