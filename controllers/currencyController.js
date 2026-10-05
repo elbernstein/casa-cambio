@@ -115,6 +115,39 @@ exports.addCurrency = async (req, res) => {
     }
 };
 
+exports.editCurrency = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { code, name, flagUrl, strength } = req.body;
+        
+        if (!code || !flagUrl) {
+            return res.status(400).json({ error: 'Code and flagUrl are required' });
+        }
+        
+        // Ensure no other currency has this code
+        const existing = await Currency.findOne({ code: code.toUpperCase(), _id: { $ne: id } });
+        if (existing) {
+            return res.status(400).json({ error: 'Another currency with this code already exists' });
+        }
+
+        const updatedCurrency = await Currency.findByIdAndUpdate(id, {
+            code: code.toUpperCase(),
+            name: name || '',
+            flagUrl,
+            strength: strength || 0
+        }, { new: true });
+
+        if (!updatedCurrency) {
+            return res.status(404).json({ error: 'Currency not found' });
+        }
+
+        res.status(200).json(updatedCurrency);
+    } catch (err) {
+        console.error('Error editing currency:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
 exports.deleteCurrency = async (req, res) => {
     try {
         const { id } = req.params;

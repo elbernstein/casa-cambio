@@ -10,6 +10,8 @@ const activeCurrencies = computed(() => CURRENCIES.value.filter(c => c.isActive 
 const showCurrencyModal = ref(false);
 const newCurrency = ref({ code: '', name: '', flagUrl: '', strength: 0 });
 const addingCurrency = ref(false);
+const isEditingCurrency = ref(false);
+const editingCurrencyId = ref(null);
 
 const fetchCurrencies = async () => {
   try {
@@ -42,6 +44,33 @@ const addCurrency = async () => {
   }
   addingCurrency.value = false;
 };
+
+const editCurrencyUi = (c) => {
+  isEditingCurrency.value = true;
+  editingCurrencyId.value = c._id;
+  newCurrency.value = { code: c.code, name: c.name, flagUrl: c.flagUrl, strength: c.strength };
+};
+
+const cancelEditCurrency = () => {
+  isEditingCurrency.value = false;
+  editingCurrencyId.value = null;
+  newCurrency.value = { code: '', name: '', flagUrl: '', strength: 0 };
+};
+
+const submitEditCurrency = async () => {
+  if (!newCurrency.value.code || !newCurrency.value.flagUrl) return alert("Código y URL de bandera son requeridos");
+  addingCurrency.value = true;
+  try {
+    await axios.put(`${API_URL}/api/currencies/${editingCurrencyId.value}`, newCurrency.value);
+    await fetchCurrencies();
+    cancelEditCurrency();
+  } catch (err) {
+    console.error(err);
+    alert("Error al editar moneda");
+  }
+  addingCurrency.value = false;
+};
+
 const toggleCurrency = async (c) => {
   try {
     await axios.put(`${API_URL}/api/currencies/${c._id}/toggle`);
@@ -440,13 +469,16 @@ onMounted(async () => {
         </div>
         <div class="manage-grid" style="grid-template-columns: 1fr;">
           <div class="manage-section">
-            <h4>➕ Agregar Moneda</h4>
+            <h4>{{ isEditingCurrency ? '✏️ Editar Moneda' : '➕ Agregar Moneda' }}</h4>
             <div class="form-group flex-row">
               <input v-model="newCurrency.code" type="text" placeholder="Código (ej. USD)" class="input-dark" style="margin-top:0;" />
               <input v-model="newCurrency.name" type="text" placeholder="Nombre (ej. Dólar)" class="input-dark" style="margin-top:0;" />
               <input v-model="newCurrency.flagUrl" type="text" placeholder="URL Bandera" class="input-dark" style="margin-top:0;" />
               <input v-model="newCurrency.strength" type="number" placeholder="Fuerza" class="input-dark" style="margin-top:0; width: 80px;" />
-              <button @click="addCurrency" class="btn-save" :disabled="addingCurrency">Agregar</button>
+              <button @click="isEditingCurrency ? submitEditCurrency() : addCurrency()" class="btn-save" :disabled="addingCurrency">
+                {{ isEditingCurrency ? 'Guardar' : 'Agregar' }}
+              </button>
+              <button v-if="isEditingCurrency" @click="cancelEditCurrency" class="btn-manage" style="margin-left: 5px;">Cancelar</button>
             </div>
           </div>
           <div class="manage-section">
@@ -463,6 +495,9 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button @click="editCurrencyUi(c)" class="btn-manage" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; min-width: 60px;">
+                    Editar
+                  </button>
                   <button @click="toggleCurrency(c)" class="btn-manage" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; min-width: 80px;">
                     {{ c.isActive !== false ? 'Desactivar' : 'Activar' }}
                   </button>
