@@ -125,6 +125,7 @@ const fetchStores = async () => {
         monedaEntrega: CURRENCIES.value.find(c => c.code === s.monedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP'),
         monedaRecibe: CURRENCIES.value.find(c => c.code === s.monedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD')
       }));
+      stores.value.forEach(s => fetchStoreRates(s));
     } else {
       res.data.forEach(serverStore => {
         const localStore = stores.value.find(s => s._id === serverStore._id);
@@ -137,13 +138,16 @@ const fetchStores = async () => {
             localStore.montoRecibe = serverStore.montoRecibe;
             localStore.monedaEntrega = CURRENCIES.value.find(c => c.code === serverStore.monedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP');
             localStore.monedaRecibe = CURRENCIES.value.find(c => c.code === serverStore.monedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD');
+            fetchStoreRates(localStore);
           }
         } else {
-          stores.value.push({
+          const newLocalStore = {
             ...serverStore,
             monedaEntrega: CURRENCIES.value.find(c => c.code === serverStore.monedaEntrega?.code) || CURRENCIES.value.find(c => c.code === 'COP'),
             monedaRecibe: CURRENCIES.value.find(c => c.code === serverStore.monedaRecibe?.code) || CURRENCIES.value.find(c => c.code === 'USD')
-          });
+          };
+          stores.value.push(newLocalStore);
+          fetchStoreRates(newLocalStore);
         }
       });
     }
@@ -344,6 +348,34 @@ const updateStoreCredentials = async () => {
   }
 };
 
+const fetchStoreRates = async (store) => {
+  if (!store || !store.monedaEntrega || !store.monedaRecibe) return;
+  try {
+    const res = await axios.get(`${API_URL}/api/rates/${store._id}?from=${store.monedaEntrega.code}&to=${store.monedaRecibe.code}`);
+    if (res.data.success) {
+      store.tasaCompra = res.data.rateCompra || '';
+      store.tasaVenta = res.data.rateVenta || '';
+      handleAmountInput(store, true);
+    }
+  } catch (error) {
+    console.error("Error fetching rates:", error);
+  }
+};
+
+const saveStoreRates = async (store) => {
+  if (!store || !store.monedaEntrega || !store.monedaRecibe) return;
+  try {
+    await axios.put(`${API_URL}/api/rates/${store._id}`, {
+      fromCurrency: store.monedaEntrega.code,
+      toCurrency: store.monedaRecibe.code,
+      rateCompra: store.tasaCompra || null,
+      rateVenta: store.tasaVenta || null
+    });
+  } catch (error) {
+    console.error("Error saving rates:", error);
+  }
+};
+
 const emitAmounts = async (store) => {
   emittingAmounts.value[store._id] = true;
   activeInputs.value[store._id] = true;
@@ -355,12 +387,18 @@ const emitAmounts = async (store) => {
       monedaRecibe: store.monedaRecibe,
       operationType: store.operationType
     });
+    await saveStoreRates(store); // <--- Added this to save rates whenever we save amounts
   } catch (error) {
     console.error("Error emitting amounts:", error);
   } finally {
     emittingAmounts.value[store._id] = false;
     setTimeout(() => { activeInputs.value[store._id] = false; }, 1500);
   }
+};
+
+const handleCurrencyChange = async (store) => {
+  await fetchStoreRates(store);
+  emitAmounts(store);
 };
 
 const swapCurrencies = (store) => {
@@ -625,13 +663,13 @@ onMounted(async () => {
           <div class="card-body">
             <!-- Selector de Divisas y Swap -->
             <div class="currency-selectors">
-              <select v-model="store.monedaEntrega" @change="emitAmounts(store)" class="currency-select">
+              <select v-model="store.monedaEntrega" @change="handleCurrencyChange(store)" class="currency-select">
                 <option v-for="c in activeCurrencies" :key="c.code" :value="c">{{ c.name }}</option>
               </select>
               <button @click="swapCurrencies(store)" class="btn-swap" title="Invertir Divisas">
                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="14" x2="21" y2="3"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="20" y1="10" x2="3" y2="21"></line></svg>
               </button>
-              <select v-model="store.monedaRecibe" @change="emitAmounts(store)" class="currency-select">
+              <select v-model="store.monedaRecibe" @change="handleCurrencyChange(store)" class="currency-select">
                 <option v-for="c in activeCurrencies" :key="c.code" :value="c">{{ c.name }}</option>
               </select>
             </div>
