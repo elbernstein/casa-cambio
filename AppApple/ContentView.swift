@@ -143,15 +143,15 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             HStack(spacing: 20) {
                                 Text("OPERACIÓN ACTUAL")
-                                    .font(.system(size: 40, weight: .medium))
-                                    .foregroundColor(textGray)
+                                    .font(.system(size: 65, weight: .medium))
+                                    .foregroundColor(.black)
                                 
                                 Text(socketObj.operationType == "COMPRA" ? "COMPRA / BUY" : "VENTA / SELL")
-                                    .font(.system(size: 26, weight: .bold))
+                                    .font(.system(size: 45, weight: .bold))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 20)
                                     .padding(.vertical, 8)
-                                    .background(socketObj.operationType == "COMPRA" ? Color.green : Color.red)
+                                    .background(socketObj.operationType == "COMPRA" ? Color.red : Color.green)
                                     .cornerRadius(12)
                             }
                             .padding(.leading, 10)
@@ -174,15 +174,15 @@ struct ContentView: View {
                                                 case .success(let image):
                                                     image.resizable().aspectRatio(contentMode: .fit)
                                                 case .failure:
-                                                    Text("🇨🇴").font(.system(size: 30))
+                                                    Text("🇨🇴").font(.system(size: 60))
                                                 @unknown default:
                                                     EmptyView()
                                                 }
                                             }
-                                            .frame(width: 45, height: 30)
+                                            .frame(width: 90, height: 60)
                                             .cornerRadius(4)
                                         } else {
-                                            Text("🇨🇴").font(.system(size: 30))
+                                            Text("🇨🇴").font(.system(size: 60))
                                         }
                                         
                                         Text(socketObj.monedaEntrega?["code"] ?? "COP")
@@ -218,15 +218,15 @@ struct ContentView: View {
                                                 case .success(let image):
                                                     image.resizable().aspectRatio(contentMode: .fit)
                                                 case .failure:
-                                                    Text("🇺🇸").font(.system(size: 30))
+                                                    Text("🇺🇸").font(.system(size: 60))
                                                 @unknown default:
                                                     EmptyView()
                                                 }
                                             }
-                                            .frame(width: 45, height: 30)
+                                            .frame(width: 90, height: 60)
                                             .cornerRadius(4)
                                         } else {
-                                            Text("🇺🇸").font(.system(size: 30))
+                                            Text("🇺🇸").font(.system(size: 60))
                                         }
                                         
                                         Text(socketObj.monedaRecibe?["code"] ?? "USD")
